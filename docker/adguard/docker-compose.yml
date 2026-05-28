@@ -1,0 +1,25 @@
+services:
+  adguard:
+    image: adguard/adguardhome:latest
+    container_name: adguard
+    hostname: adguard
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/adguard/.env
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "8054:80/tcp"
+    volumes:
+      - ${STACK_DIR}/work:/opt/adguardhome/work
+      - ${STACK_DIR}/conf:/opt/adguardhome/conf
+    networks:
+      - homelab_dns
+      - homelab_web
+
+networks:
+  homelab_dns:
+    external: true
+  homelab_web:
+    external: true
