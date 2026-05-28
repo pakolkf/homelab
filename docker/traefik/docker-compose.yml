@@ -1,0 +1,44 @@
+services:
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    hostname: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/traefik/.env
+    ports:
+      - 80:80
+      - 443:443
+      - 8080:8080
+    volumes:
+      - ${STACK_DIR}/traefik.yml:/traefik.yml:ro
+      - ${STACK_DIR}/dynamic:/etc/traefik/dynamic:ro
+      - ${STACK_DIR}/letsencrypt:/letsencrypt
+      - ${STACK_DIR}/logs:/var/log/traefik
+    networks:
+      - homelab_web
+      - homelab_socket
+    depends_on:
+      error-pages: {condition: service_healthy}
+
+  error-pages:
+    image: tarampampam/error-pages:latest
+    container_name: error-pages
+    hostname: error-pages
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/traefik/.env
+    ports:
+      - 8090:8080
+    networks:
+      - homelab_web
+
+networks:
+  homelab_web:
+    external: true
+  homelab_socket:
+    external: true

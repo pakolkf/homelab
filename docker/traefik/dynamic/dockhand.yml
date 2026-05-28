@@ -1,0 +1,15 @@
+http:
+  routers:
+    dockhand:
+      rule: "Host(`dockhand.example.com`)"
+      entryPoints:
+        - websecure
+      service: dockhand
+      middlewares:
+        - secure-headers
+
+  services:
+    dockhand:
+      loadBalancer:
+        servers:
+          - url: "http://dockhand:8085"

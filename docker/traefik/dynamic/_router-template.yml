@@ -1,0 +1,13 @@
+# Plantilla Traefik (con LE) -- copia como <servicio>.yml
+# http:
+#   routers:
+#     mi-servicio:
+#       rule: "Host(`mi-servicio.ejemplo.com`)"
+#       entryPoints: [websecure]
+#       service: mi-servicio
+#       middlewares: [secure-headers, error-pages]
+#   services:
+#     mi-servicio:
+#       loadBalancer:
+#         servers:
+#           - url: "http://mi-servicio:8080"

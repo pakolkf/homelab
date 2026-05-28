@@ -1,0 +1,15 @@
+http:
+  services:
+    error-pages:
+      loadBalancer:
+        servers:
+          - url: "http://error-pages:8090"
+
+  routers:
+    error-pages-fallback:
+      rule: "HostRegexp(`.+`)"
+      priority: 1
+      entryPoints:
+        - websecure
+        - traefik
+      service: error-pages
