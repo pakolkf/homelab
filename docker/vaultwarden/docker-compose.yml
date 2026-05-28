@@ -1,0 +1,18 @@
+services:
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/vaultwarden/.env
+    ports:
+      - "8222:80"
+    volumes:
+      - ${STACK_DIR}/data:/data
+    networks:
+      - homelab_web
+
+networks:
+  homelab_web:
+    external: true
