@@ -13,5 +13,5 @@ mkdir -p "${HOMELAB_DOCKER_DIR}/homarr/appdata"
 chown -R ${UID_TARGET}:${GID_TARGET} "${HOMELAB_DOCKER_DIR}/homarr/appdata"
 chmod -R 750 "${HOMELAB_DOCKER_DIR}/homarr/appdata"
 
-echo 'vm.overcommit_memory=1' | sudo tee /etc/sysctl.d/99-homarr-redis.conf
-sudo sysctl --system
+echo 'vm.overcommit_memory=1' | tee /etc/sysctl.d/99-homarr-redis.conf
+sysctl --system
