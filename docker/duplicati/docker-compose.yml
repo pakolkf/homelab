@@ -1,0 +1,20 @@
+services:
+  duplicati:
+    image: lscr.io/linuxserver/duplicati:latest
+    container_name: duplicati
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/duplicati/.env
+    ports:
+      - "8200:8200"
+    volumes:
+      - ${STACK_DIR}/config:/config
+      - ${STACK_DIR}/backups:/backups
+      - ${HOMELAB_BASE}:/source:ro
+    networks:
+      - homelab_web
+
+networks:
+  homelab_web:
+    external: true
