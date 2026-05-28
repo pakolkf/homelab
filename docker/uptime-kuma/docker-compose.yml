@@ -1,0 +1,18 @@
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:latest
+    container_name: uptime-kuma
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/uptime-kuma/.env
+    ports:
+      - "3013:3001"
+    volumes:
+      - ${STACK_DIR}/data:/app/data
+    networks:
+      - homelab_web
+
+networks:
+  homelab_web:
+    external: true
