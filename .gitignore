@@ -9,3 +9,71 @@ docker/**/.env.local
 
 # Excepción: el .env de socket-proxy no contiene secretos.
 !docker/socket-proxy/.env
+
+# =========================================================
+# Runtime / datos persistentes de los stacks
+# =========================================================
+# Volúmenes y estado generados en tiempo de ejecución.
+# Las recetas (docker-compose.yml, *.yml de config) sí se versionan.
+
+# Genéricos (cubre la mayoría de stacks: appdata, data, config, logs, backups…)
+docker/*/appdata/
+docker/*/data/
+docker/*/config/
+docker/*/conf/
+docker/*/logs/
+docker/*/log/
+docker/*/database/
+docker/*/backups/
+docker/*/work/
+
+# Específicos
+docker/traefik/letsencrypt/
+docker/traefik/logs/
+docker/cloudflare/credentials/
+docker/tailscale/data/
+docker/tailscale/config/
+docker/wgdashboard/conf/
+docker/duplicati/backups/
+
+# Unbound: las raíces se refrescan mensualmente por cron.
+docker/unbound/root.hints
+docker/unbound/root.key
+
+# Traefik: NO ignorar `dynamic/` — es configuración versionada.
+!docker/traefik/dynamic/
+
+# =========================================================
+# Material criptográfico y claves
+# =========================================================
+*.pem
+*.key
+*.crt
+*.csr
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+acme*.json
+
+# Excepciones: claves de configuración pública que sí se versionan
+!docker/unbound/unbound.conf
+
+# =========================================================
+# Editor / SO
+# =========================================================
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# =========================================================
+# Backups y temporales
+# =========================================================
+*.bak
+*.tmp
+*.orig
+*.log
