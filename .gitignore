@@ -1,0 +1,11 @@
+# =========================================================
+# Secretos por stack
+# =========================================================
+# El docker/.env raíz SÍ se versiona (sólo defaults no sensibles).
+# Los .env por stack NO se versionan, salvo excepciones explícitas.
+docker/*/.env
+docker/**/.env.local
+*.env.local
+
+# Excepción: el .env de socket-proxy no contiene secretos.
+!docker/socket-proxy/.env
