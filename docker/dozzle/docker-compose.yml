@@ -1,0 +1,21 @@
+services:
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/dozzle/.env
+    ports:
+      - "8086:8080"
+    volumes:
+      - ${STACK_DIR}/data:/data
+    networks:
+      - homelab_web
+      - homelab_socket
+
+networks:
+  homelab_web:
+    external: true
+  homelab_socket:
+    external: true
