@@ -1,0 +1,22 @@
+services:
+  homarr:
+    image: ghcr.io/homarr-labs/homarr:latest
+    container_name: homarr
+    hostname: homarr
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/homarr/.env
+    ports:
+      - "7575:7575"
+    volumes:
+      - ${STACK_DIR}/appdata:/appdata
+    networks:
+      - homelab_web
+      - homelab_socket
+
+networks:
+  homelab_web:
+    external: true
+  homelab_socket:
+    external: true
