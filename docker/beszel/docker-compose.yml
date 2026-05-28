@@ -1,0 +1,29 @@
+services:
+  beszel:
+    image: henrygd/beszel:latest
+    container_name: beszel
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/beszel/.env
+    ports:
+      - "8091:8090"
+    volumes:
+      - ${STACK_DIR}/data:/beszel_data
+    networks:
+      - homelab_web
+
+  beszel-agent:
+    image: henrygd/beszel-agent
+    container_name: beszel-agent
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/beszel/.env
+    network_mode: host
+    volumes:
+      - ${STACK_DIR}/data-agent:/var/lib/beszel-agent
+
+networks:
+  homelab_web:
+    external: true
