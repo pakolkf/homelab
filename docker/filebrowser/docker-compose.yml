@@ -1,0 +1,21 @@
+services:
+  filebrowser:
+    image: filebrowser/filebrowser:s6
+    container_name: filebrowser
+    hostname: filebrowser
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/filebrowser/.env
+    ports:
+      - "8088:80"
+    volumes:
+      - ${HOMELAB_BASE}:/srv
+      - ${STACK_DIR}/database:/database
+      - ${STACK_DIR}/config:/config
+    networks:
+      - homelab_web
+
+networks:
+  homelab_web:
+    external: true
