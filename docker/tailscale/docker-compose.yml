@@ -1,0 +1,19 @@
+services:
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: tailscale
+    hostname: ${TS_HOSTNAME}
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_MODULE
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/tailscale/.env
+    volumes:
+      - ${STACK_DIR}/data:/var/lib/tailscale
+      - ${STACK_DIR}/config:/config
