@@ -1,0 +1,23 @@
+services:
+  dockhand:
+    image: fnsys/dockhand:latest
+    container_name: dockhand
+    hostname: dockhand
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/dockhand/.env
+    ports:
+      - "8085:3000"
+    volumes:
+      - ${STACK_DIR}/data:/app/data
+      - ${DOCKER_BASE}:${DOCKER_BASE}
+    networks:
+      - homelab_web
+      - homelab_socket
+
+networks:
+  homelab_web:
+    external: true
+  homelab_socket:
+    external: true
