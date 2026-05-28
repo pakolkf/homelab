@@ -1,0 +1,19 @@
+services:
+  nutify:
+    image: dartsteven/nutify:latest-amd64
+    container_name: nutify
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/nutify/.env
+    ports:
+      - "5050:5050"
+    volumes:
+      - ${STACK_DIR}/data:/app/nutify/data
+      - ${STACK_DIR}/logs:/app/nutify/logs
+    networks:
+      - homelab_web
+
+networks:
+  homelab_web:
+    external: true
