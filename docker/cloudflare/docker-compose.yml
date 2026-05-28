@@ -1,0 +1,45 @@
+services:
+  cloudflare-tunnels:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflare-tunnels
+    hostname: cloudflare-tunnels
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/cloudflare/.env
+    networks:
+      - homelab_web
+
+  cloudflare-companion:
+    image: ghcr.io/tiredofit/docker-traefik-cloudflare-companion:latest
+    container_name: cloudflare-companion
+    hostname: cloudflare-companion
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/cloudflare/.env
+    networks:
+      - homelab_web
+      - homelab_socket
+
+  cloudflare-ddns:
+    image: favonia/cloudflare-ddns:latest
+    container_name: cloudflare-ddns
+    restart: unless-stopped
+    network_mode: host
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/cloudflare/.env
+
+networks:
+  homelab_web:
+    external: true
+  homelab_socket:
+    external: true
+
