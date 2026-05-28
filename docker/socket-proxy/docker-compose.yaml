@@ -1,0 +1,65 @@
+services:
+  socket-proxy:
+    image: lscr.io/linuxserver/socket-proxy:latest
+    container_name: socket-proxy
+    hostname: socket-proxy
+    restart: unless-stopped
+    ports:
+      - "2375:2375"
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/socket-proxy/.env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - homelab_socket
+    read_only: true
+    tmpfs:
+      - /run
+
+  socket-proxy-ro:
+    image: lscr.io/linuxserver/socket-proxy:latest
+    container_name: socket-proxy-ro
+    hostname: socket-proxy-ro
+    restart: unless-stopped
+    ports:
+      - "2376:2375"
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/socket-proxy/.env
+    environment:
+      # Bloquear toda escritura
+      - POST=0
+      - ALLOW_START=0
+      - ALLOW_STOP=0
+      - ALLOW_RESTARTS=0
+      - ALLOW_PAUSE=0
+      - ALLOW_UNPAUSE=0
+      - BUILD=0
+      - COMMIT=0
+      
+      # Restringir lectura sensible
+      - SECRETS=0
+      - AUTH=0
+      - EXEC=0
+      - SYSTEM=0
+      - VOLUMES=0
+      - IMAGES=0
+      
+      # Mantener lo esencial para funcionamiento
+      - PING=1
+      - VERSION=1
+      - EVENTS=1
+      - CONTAINERS=1
+      - NETWORKS=1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - homelab_socket
+    read_only: true
+    tmpfs:
+      - /run
+
+networks:
+  homelab_socket:
+    external: true
