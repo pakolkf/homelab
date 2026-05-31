@@ -9,6 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 ./auto_update.sh
+./set_ip.sh static
 ./update_unbound_roots.sh
 ./disable_ipv6.sh
 ./disable_dns.sh
