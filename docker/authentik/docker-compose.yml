@@ -1,0 +1,76 @@
+services:
+  authentik-postgresql:
+    image: docker.io/library/postgres:16-alpine
+    container_name: authentik-postgresql
+    hostname: authentik-postgresql
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/authentik/.env
+    volumes:
+      - ${STACK_DIR}/database:/var/lib/postgresql/data
+    healthcheck:
+      interval: 30s
+      retries: 5
+      start_period: 20s
+      test:
+        - CMD-SHELL
+        - pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}
+      timeout: 5s
+    networks:
+      - authtentik_internal              
+
+  authentik-server:
+    image: ghcr.io/goauthentik/server:2026.5.2
+    container_name: authentik-server
+    hostname: authentik-server
+    command: server
+    restart: unless-stopped
+    shm_size: 512mb
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/authentik/.env
+    ports:
+      - 9000:9000
+      - 9443:9443
+    volumes:
+      - ${STACK_DIR}/data:/data
+      - ${STACK_DIR}/custom-templates:/templates
+    depends_on:
+      authentik-postgresql:
+        condition: service_healthy
+    networks:
+      - homelab_web
+      - homelab_socket
+      - authtentik_internal
+
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:2026.5.2
+    container_name: authentik-worker
+    hostname: authentik-worker
+    restart: unless-stopped
+    shm_size: 512mb
+    user: root
+    command: worker
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/authentik/.env
+    volumes:
+      - ${STACK_DIR}/data:/data
+      - ${STACK_DIR}/certs:/certs
+      - ${STACK_DIR}/custom-templates:/templates
+    depends_on:
+      authentik-postgresql:
+        condition: service_healthy
+    networks:
+      - homelab_web
+      - homelab_socket
+      - authtentik_internal
+
+networks:
+  homelab_web:
+    external: true
+  homelab_socket:
+    external: true
+  authtentik_internal:
+    internal: true
