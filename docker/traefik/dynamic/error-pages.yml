@@ -3,7 +3,7 @@ http:
     error-pages:
       loadBalancer:
         servers:
-          - url: "http://error-pages:8090"
+          - url: "http://error-pages:8080"
 
   routers:
     error-pages-fallback:
@@ -11,5 +11,5 @@ http:
       priority: 1
       entryPoints:
         - websecure
-        - traefik
+        - dashboard
       service: error-pages

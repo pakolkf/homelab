@@ -32,8 +32,6 @@ services:
     env_file:
       - /opt/homelab/docker/.env
       - /opt/homelab/docker/traefik/.env
-    ports:
-      - 8090:8080
     networks:
       - homelab_web
 

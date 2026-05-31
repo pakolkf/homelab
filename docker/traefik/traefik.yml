@@ -1,6 +1,6 @@
 api:
   dashboard: true
-  insecure: true
+  insecure: false
 
 providers:
   docker:
@@ -27,6 +27,8 @@ entryPoints:
         certResolver: letsencrypt-staging
         domains:
           - main: "example.com"
+  dashboard:
+    address: ":8080"
 
 certificatesResolvers:
   letsencrypt-staging:
