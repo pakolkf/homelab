@@ -27,6 +27,7 @@ La gestión es **dockhand-first**: por terminal solo se instalan `hawser` y `doc
 
 - Host con **Ubuntu / Debian** (los scripts usan `apt-get` y `systemd-resolved`).
 - Acceso `root` (vía `sudo`).
+- Red del host: ajusta `scripts/set_ip.sh` (`INTERFACE`, `STATIC_IP`, `GATEWAY`) a tu LAN **antes** del bootstrap — `init.sh` lo aplica con IP estática.
 - Dominio propio gestionado en **Cloudflare** (necesario para el reto DNS-01 de Let's Encrypt). El dominio y el email ACME se definen **solo** en `docker/.env` (`FQDN`, `ACME_EMAIL`); los configs (`traefik.yaml`, `dynamic/`, `unbound.conf`) usan `${FQDN}` / `${ACME_EMAIL}` y los renderiza `sync_appdata.sh` al copiarlos a `appdata`.
 - Conectividad saliente a los registros de imagen y a Let's Encrypt.
 
@@ -116,6 +117,8 @@ En tiempo de ejecución, el host además tiene `/opt/homelab/stacks/` (recetas q
 ## Instalación rápida
 
 1. Clona o copia este repositorio en el host (ej. `/root/homelab`).
+
+   > ⚠️ **Antes de continuar**, edita `scripts/set_ip.sh` con los valores de **tu** red (`INTERFACE`, `STATIC_IP`, `GATEWAY`). `init.sh` lo ejecuta con `static`; con los valores por defecto (`eth0`, `192.168.1.100/24`, gw `192.168.1.1`) podrías cambiar o perder la IP del host.
 
 2. Ejecuta el bootstrap completo (idempotente):
 
