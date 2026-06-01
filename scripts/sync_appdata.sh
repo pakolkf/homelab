@@ -4,8 +4,9 @@
 # .env) desde el repo a /opt/homelab/appdata/<svc>/, que es donde los
 # contenedores la montan vía ${APPDATA_DIR}.
 #
-# Además renderiza ${FQDN} en la config (Traefik/Unbound usan el dominio),
-# tomándolo del .env del host. Así el repo nunca hardcodea el dominio real.
+# Además renderiza variables del host (FQDN, ACME_EMAIL) en la config, para que
+# el repo nunca hardcodee el dominio ni el email reales: en el repo van como
+# ${FQDN} / ${ACME_EMAIL} y aquí se sustituyen por su valor del .env del host.
 #
 # Motivo: dockhand solo escribe el compose del stack; los ficheros de config
 # versionados (traefik.yaml, dynamic/, unbound.conf, AdGuardHome.yaml, root.*)
@@ -26,6 +27,9 @@ SRC="${REPO_DIR}/stacks-templates"
 DEST="/opt/homelab/appdata"
 HOST_ENV="/opt/homelab/docker/.env"
 
+# Variables del host que se renderizan en las plantillas de config.
+RENDER_VARS="FQDN ACME_EMAIL"
+
 # Usuario real (vía sudo -> SUDO_*; root login -> id).
 PUID="${SUDO_UID:-$(id -u)}"
 PGID="${SUDO_GID:-$(id -g)}"
@@ -35,7 +39,7 @@ if [[ ! -d "${SRC}" ]]; then
     exit 1
 fi
 
-# Carga variables del host (FQDN…) para renderizar las plantillas de config.
+# Carga las variables del host para renderizar.
 if [[ -f "${HOST_ENV}" ]]; then
     set -a; . "${HOST_ENV}"; set +a
 fi
@@ -52,17 +56,19 @@ for svc_dir in "${SRC}"/*/; do
         --exclude '.env' \
         --exclude '.env.*' \
         "${svc_dir}" "${DEST}/${svc}/"
-    # Renderiza ${FQDN} en la config copiada (Traefik/Unbound usan el dominio).
-    if [[ -n "${FQDN:-}" ]]; then
+    # Renderiza ${VAR} -> valor en la config copiada.
+    for var in ${RENDER_VARS}; do
+        val="${!var:-}"
+        [[ -n "${val}" ]] || continue
         find "${DEST}/${svc}" -type f -print0 \
-            | xargs -0 -r sed -i "s|\${FQDN}|${FQDN}|g"
-    fi
+            | xargs -0 -r sed -i "s|\${${var}}|${val}|g"
+    done
     chown -R "${PUID}:${PGID}" "${DEST}/${svc}"
     echo "OK: ${svc}"
 done
 
-if [[ -z "${FQDN:-}" ]]; then
-    echo "AVISO: FQDN no definido en ${HOST_ENV}; plantillas con \${FQDN} sin renderizar." >&2
-fi
+for var in ${RENDER_VARS}; do
+    [[ -n "${!var:-}" ]] || echo "AVISO: ${var} no definido en ${HOST_ENV}; plantillas con \${${var}} sin renderizar." >&2
+done
 
 echo "Config sincronizada."

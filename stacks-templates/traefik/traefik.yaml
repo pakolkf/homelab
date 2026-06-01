@@ -33,7 +33,7 @@ entryPoints:
 certificatesResolvers:
   letsencrypt-staging:
     acme:
-      email: "admin@example.com"
+      email: "${ACME_EMAIL}"
       storage: "/letsencrypt/acme-staging.json"
       caServer: "https://acme-staging-v02.api.letsencrypt.org/directory"
       dnsChallenge:
@@ -43,7 +43,7 @@ certificatesResolvers:
           - "1.0.0.1:53"
   letsencrypt-production:
     acme:
-      email: "admin@example.com"
+      email: "${ACME_EMAIL}"
       storage: "/letsencrypt/acme-production.json"
       caServer: "https://acme-v02.api.letsencrypt.org/directory"
       dnsChallenge:
