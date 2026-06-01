@@ -41,7 +41,6 @@ services:
         condition: service_healthy
     networks:
       - homelab_web
-      - homelab_socket
       - authtentik_internal
 
   authentik-worker:
@@ -64,13 +63,10 @@ services:
         condition: service_healthy
     networks:
       - homelab_web
-      - homelab_socket
       - authtentik_internal
 
 networks:
   homelab_web:
-    external: true
-  homelab_socket:
     external: true
   authtentik_internal:
     internal: true
