@@ -6,8 +6,10 @@ if [[ "${EUID}" -ne 0 ]]; then
 fi
 
 HOMELAB_DOCKER_DIR="/opt/homelab/docker"
-UID_TARGET="1000"
-GID_TARGET="1000"
+# Usuario real que invocó el script: vía sudo -> SUDO_UID/SUDO_GID (uid de pepe);
+# root login sin sudo -> id -u / id -g (será 0).
+UID_TARGET="${SUDO_UID:-$(id -u)}"
+GID_TARGET="${SUDO_GID:-$(id -g)}"
 
 mkdir -p "${HOMELAB_DOCKER_DIR}/homarr/appdata"
 chown -R ${UID_TARGET}:${GID_TARGET} "${HOMELAB_DOCKER_DIR}/homarr/appdata"

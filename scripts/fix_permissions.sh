@@ -3,8 +3,10 @@
 set -uo pipefail
 
 HOMELAB_DIR="/opt/homelab"
-UID_TARGET="1000"
-GID_TARGET="1000"
+# Usuario real que invocó el script: vía sudo -> SUDO_UID/SUDO_GID (uid de pepe);
+# root login sin sudo -> id -u / id -g (será 0).
+UID_TARGET="${SUDO_UID:-$(id -u)}"
+GID_TARGET="${SUDO_GID:-$(id -g)}"
 
 echo "========================================="
 echo " CONFIGURACIÓN DE PERMISOS HOMELAB"
