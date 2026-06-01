@@ -48,6 +48,14 @@ echo "Sincronizando config de stacks-templates -> ${DEST} ..."
 
 for svc_dir in "${SRC}"/*/; do
     svc="$(basename "${svc_dir}")"
+    # Si no hay config versionada (solo quedaría compose/.env), la carpeta
+    # estaría vacía -> no se sincroniza.
+    if [[ -z "$(find "${svc_dir}" -type f \
+            ! -name 'docker-compose.yaml' ! -name 'docker-compose.yml' \
+            ! -name '.env' ! -name '.env.*' -print -quit)" ]]; then
+        echo "skip: ${svc} (sin config versionada)"
+        continue
+    fi
     mkdir -p "${DEST}/${svc}"
     # Copia la config; excluye recetas (compose) y secretos (.env).
     rsync -a \
