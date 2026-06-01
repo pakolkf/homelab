@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     env_file:
       - /opt/homelab/docker/.env
-      - /opt/homelab/docker/vaultwarden/.env
+      - .env
     ports:
       - "8222:80"
     volumes:

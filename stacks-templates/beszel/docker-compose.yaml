@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     env_file:
       - /opt/homelab/docker/.env
-      - /opt/homelab/docker/beszel/.env
+      - .env
     ports:
       - "8091:8090"
     volumes:
@@ -19,7 +19,7 @@ services:
     restart: unless-stopped
     env_file:
       - /opt/homelab/docker/.env
-      - /opt/homelab/docker/beszel/.env
+      - .env
     network_mode: host
     volumes:
       - ${APPDATA_DIR}/data-agent:/var/lib/beszel-agent

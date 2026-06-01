@@ -13,7 +13,7 @@ services:
       - /dev/net/tun:/dev/net/tun
     env_file:
       - /opt/homelab/docker/.env
-      - /opt/homelab/docker/tailscale/.env
+      - .env
     volumes:
       - ${APPDATA_DIR}/data:/var/lib/tailscale
       - ${APPDATA_DIR}/config:/config

@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     env_file:
       - /opt/homelab/docker/.env
-      - /opt/homelab/docker/authentik/.env
+      - .env
     volumes:
       - ${APPDATA_DIR}/database:/var/lib/postgresql/data
     healthcheck:
@@ -29,7 +29,7 @@ services:
     shm_size: 512mb
     env_file:
       - /opt/homelab/docker/.env
-      - /opt/homelab/docker/authentik/.env
+      - .env
     ports:
       - 9000:9000
       - 9443:9443
@@ -53,7 +53,7 @@ services:
     command: worker
     env_file:
       - /opt/homelab/docker/.env
-      - /opt/homelab/docker/authentik/.env
+      - .env
     volumes:
       - ${APPDATA_DIR}/data:/data
       - ${APPDATA_DIR}/certs:/certs

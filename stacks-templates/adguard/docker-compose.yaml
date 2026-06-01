@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     env_file:
       - /opt/homelab/docker/.env
-      - /opt/homelab/docker/adguard/.env
+      - .env
     ports:
       - "53:53/tcp"
       - "53:53/udp"

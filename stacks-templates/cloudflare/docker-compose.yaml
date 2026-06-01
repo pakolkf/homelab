@@ -7,7 +7,7 @@ services:
     command: tunnel --no-autoupdate run
     env_file:
       - /opt/homelab/docker/.env
-      - /opt/homelab/docker/cloudflare/.env
+      - .env
     networks:
       - homelab_web
 
@@ -18,7 +18,7 @@ services:
     restart: unless-stopped
     env_file:
       - /opt/homelab/docker/.env
-      - /opt/homelab/docker/cloudflare/.env
+      - .env
     networks:
       - homelab_web
       - homelab_socket
@@ -35,7 +35,7 @@ services:
       - no-new-privileges:true
     env_file:
       - /opt/homelab/docker/.env
-      - /opt/homelab/docker/cloudflare/.env
+      - .env
 
 networks:
   homelab_web:

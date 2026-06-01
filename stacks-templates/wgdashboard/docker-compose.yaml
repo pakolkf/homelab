@@ -11,7 +11,7 @@ services:
       net.ipv4.conf.all.src_valid_mark: 1
     env_file:
       - /opt/homelab/docker/.env
-      - /opt/homelab/docker/wgdashboard/.env
+      - .env
     ports:
       - "10086:10086/tcp"
       - "51820:51820/udp"

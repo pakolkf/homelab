@@ -8,7 +8,7 @@ services:
       - no-new-privileges:true
     env_file:
       - /opt/homelab/docker/.env
-      - /opt/homelab/docker/traefik/.env
+      - .env
     ports:
       - 80:80
       - 443:443
@@ -31,7 +31,7 @@ services:
     restart: unless-stopped
     env_file:
       - /opt/homelab/docker/.env
-      - /opt/homelab/docker/traefik/.env
+      - .env
     networks:
       - homelab_web
 

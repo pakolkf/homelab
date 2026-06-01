@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     env_file:
       - /opt/homelab/docker/.env
-      - /opt/homelab/docker/homarr/.env
+      - .env
     ports:
       - "7575:7575"
     volumes:

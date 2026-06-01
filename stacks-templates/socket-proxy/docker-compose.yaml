@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     env_file:
       - /opt/homelab/docker/.env
-      - /opt/homelab/docker/socket-proxy/.env
+      - .env
     environment:
       # Bloquear toda escritura
       - POST=0

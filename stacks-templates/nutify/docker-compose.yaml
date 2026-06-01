@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     env_file:
       - /opt/homelab/docker/.env
-      - /opt/homelab/docker/nutify/.env
+      - .env
     ports:
       - "5050:5050"
     volumes:

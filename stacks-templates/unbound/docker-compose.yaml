@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     env_file:
       - /opt/homelab/docker/.env
-      - /opt/homelab/docker/unbound/.env
+      - .env
     volumes:
       - ${APPDATA_DIR}/unbound.conf:/opt/unbound/etc/unbound/unbound.conf:ro
       - ${APPDATA_DIR}/root.hints:/opt/unbound/etc/unbound/root.hints:ro

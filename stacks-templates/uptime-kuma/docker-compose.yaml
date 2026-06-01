@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     env_file:
       - /opt/homelab/docker/.env
-      - /opt/homelab/docker/uptime-kuma/.env
+      - .env
     ports:
       - "3013:3001"
     volumes:
