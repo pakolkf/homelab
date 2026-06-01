@@ -27,7 +27,7 @@ La gestión es **dockhand-first**: por terminal solo se instalan `hawser` y `doc
 
 - Host con **Ubuntu / Debian** (los scripts usan `apt-get` y `systemd-resolved`).
 - Acceso `root` (vía `sudo`).
-- Dominio propio gestionado en **Cloudflare** (necesario para el reto DNS-01 de Let's Encrypt). El dominio por defecto en la config es `example.com` — cámbialo en `docker/.env` y en `stacks-templates/traefik/traefik.yaml`.
+- Dominio propio gestionado en **Cloudflare** (necesario para el reto DNS-01 de Let's Encrypt). El dominio y el email ACME se definen **solo** en `docker/.env` (`FQDN`, `ACME_EMAIL`); los configs (`traefik.yaml`, `dynamic/`, `unbound.conf`) usan `${FQDN}` / `${ACME_EMAIL}` y los renderiza `sync_appdata.sh` al copiarlos a `appdata`.
 - Conectividad saliente a los registros de imagen y a Let's Encrypt.
 
 Docker y Docker Compose **no** son requisitos previos: los instala `scripts/install_docker.sh`.
@@ -47,7 +47,7 @@ Tres árboles en el host:
 | `/opt/homelab/appdata/<svc>/` | Config + datos de cada servicio | `sync_appdata.sh` (config) + runtime (datos) |
 
 - **Recetas en el repo:** las plantillas de los servicios viven en `stacks-templates/<svc>/` y son la fuente para crear los stacks en dockhand. dockhand las escribe en `/opt/homelab/stacks/{env}/{stack}/` (el `{env}` es el nombre del environment que le des; los stacks de Git van a `…/dockhand/data/git-repos/{env}/{stack}/`).
-- **Datos y config en appdata:** los volúmenes apuntan a `${APPDATA_DIR}` (= `/opt/homelab/appdata/<svc>`, ruta absoluta). La config versionada (p.ej. `traefik.yaml`, `dynamic/`, `unbound.conf`, `AdGuardHome.yaml`) la copia ahí `scripts/sync_appdata.sh` desde el repo, porque dockhand solo escribe el `compose`.
+- **Datos y config en appdata:** los volúmenes apuntan a `${APPDATA_DIR}` (= `/opt/homelab/appdata/<svc>`, ruta absoluta). La config versionada (p.ej. `traefik.yaml`, `dynamic/`, `unbound.conf`, `AdGuardHome.yaml`) la copia ahí `scripts/sync_appdata.sh` desde el repo, porque dockhand solo escribe el `compose`. Al copiarla, `sync_appdata.sh` **renderiza** `${FQDN}` y `${ACME_EMAIL}` con los valores del `.env` del host, así el repo nunca contiene el dominio ni el email reales.
 - **Rescate sin UI:** si dockhand cae, basta SSH al host y `docker compose` a mano sobre la receta en `/opt/homelab/stacks/...` (o copiar lo que haga falta a `appdata`).
 
 ### Convención de `.env` y variables
@@ -135,6 +135,7 @@ En tiempo de ejecución, el host además tiene `/opt/homelab/stacks/` (recetas q
 
    - `hawser/.env`: `PORT=2376`, `STACKS_DIR=/opt/homelab/stacks`, `TOKEN=<token>`.
    - `dockhand/.env`: `HOST_DATA_DIR` y `STACK_DIR` del propio dockhand.
+   - `docker/.env`: pon tu `FQDN` y `ACME_EMAIL` reales (no commitees ese cambio) y reejecuta `sudo ./scripts/sync_appdata.sh` para renderizar la config.
 
 4. Levanta `hawser` y `dockhand` por terminal:
 
@@ -517,6 +518,7 @@ Tras arrancar el stack `cloudflare`, revisa los logs de `cloudflare-tunnels` y `
 
 - **Rescate sin UI:** SSH al host y `docker compose` directamente sobre la receta en `/opt/homelab/stacks/...`.
 - **Cambios de config versionada** (traefik.yaml, dynamic/, unbound.conf…): edítalos en el repo (`stacks-templates/<svc>/`) y reejecuta `sudo ./scripts/sync_appdata.sh` para llevarlos a `appdata`.
+- **Dominio o email ACME:** edita `/opt/homelab/docker/.env` (`FQDN`, `ACME_EMAIL`) y reejecuta `sudo ./scripts/sync_appdata.sh`.
 
 Logs de Traefik (acceso y servicio) en `/opt/homelab/appdata/traefik/logs/`.
 
