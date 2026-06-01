@@ -10,8 +10,9 @@ services:
     ports:
       - "8085:3000"
     volumes:
+      # Solo estado interno de dockhand (db + .encryption_key). Las recetas las
+      # gestiona hawser bajo /opt/homelab/stacks; no se montan aquí.
       - ${STACK_DIR}/data:/app/data
-      - ${DOCKER_BASE}:${DOCKER_BASE}
     networks:
       - homelab_web
       - homelab_socket
