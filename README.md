@@ -1,14 +1,15 @@
 # homelab
 
-Homelab autoalojado basado en **Docker Compose** sobre un host Linux (Ubuntu/Debian), con bootstrap automatizado del sistema, DNS recursivo propio, reverse proxy con TLS automático y un catálogo de servicios habituales (dashboard, gestor de ficheros, backups, monitorización, VPN…).
+Homelab autoalojado sobre **Docker** en un host Linux (Ubuntu/Debian), con bootstrap automatizado del sistema, DNS recursivo propio, reverse proxy con TLS automático y un catálogo de servicios habituales (dashboard, gestor de ficheros, backups, monitorización, VPN…).
 
-Todo el stack está pensado para vivir en `/opt/homelab/` del host. Este repositorio es la **fuente de verdad** que se sincroniza a esa ruta.
+La gestión es **dockhand-first**: por terminal solo se instalan `hawser` y `dockhand`; **todo lo demás se despliega y configura desde la UI de dockhand**. Este repositorio es la **fuente de verdad** de las recetas y la config; todo vive en `/opt/homelab/` del host.
 
 ---
 
 ## Tabla de contenidos
 
 - [Requisitos](#requisitos)
+- [Modelo de despliegue (dockhand-first)](#modelo-de-despliegue-dockhand-first)
 - [Estructura del repositorio](#estructura-del-repositorio)
 - [Instalación rápida](#instalación-rápida)
 - [Arquitectura](#arquitectura)
@@ -26,10 +27,44 @@ Todo el stack está pensado para vivir en `/opt/homelab/` del host. Este reposit
 
 - Host con **Ubuntu / Debian** (los scripts usan `apt-get` y `systemd-resolved`).
 - Acceso `root` (vía `sudo`).
-- Dominio propio gestionado en **Cloudflare** (necesario para el reto DNS-01 de Let's Encrypt). El dominio por defecto en la config es `example.com` — cámbialo en `docker/.env` y en `docker/traefik/traefik.yaml`.
+- Dominio propio gestionado en **Cloudflare** (necesario para el reto DNS-01 de Let's Encrypt). El dominio por defecto en la config es `example.com` — cámbialo en `docker/.env` y en `stacks-templates/traefik/traefik.yaml`.
 - Conectividad saliente a los registros de imagen y a Let's Encrypt.
 
 Docker y Docker Compose **no** son requisitos previos: los instala `scripts/install_docker.sh`.
+
+---
+
+## Modelo de despliegue (dockhand-first)
+
+**Solo `hawser` y `dockhand` se instalan por terminal** (`docker compose up`, tras el bootstrap del host). El resto de servicios se instalan y configuran **desde la UI de dockhand**, que los gestiona como stacks y los ejecuta a través del agente `hawser`.
+
+Tres árboles en el host:
+
+| Ruta | Qué contiene | Quién la gestiona |
+| --- | --- | --- |
+| `/opt/homelab/docker/` | Bootstrap: `hawser`, `dockhand` y el `.env` del host | Tú, por terminal |
+| `/opt/homelab/stacks/{env}/{stack}/` | Recetas (`compose.yaml` + `.env`) de los stacks | dockhand (estructura impuesta) |
+| `/opt/homelab/appdata/<svc>/` | Config + datos de cada servicio | `sync_appdata.sh` (config) + runtime (datos) |
+
+- **Recetas en el repo:** las plantillas de los servicios viven en `stacks-templates/<svc>/` y son la fuente para crear los stacks en dockhand. dockhand las escribe en `/opt/homelab/stacks/{env}/{stack}/` (el `{env}` es el nombre del environment que le des; los stacks de Git van a `…/dockhand/data/git-repos/{env}/{stack}/`).
+- **Datos y config en appdata:** los volúmenes apuntan a `${APPDATA_DIR}` (= `/opt/homelab/appdata/<svc>`, ruta absoluta). La config versionada (p.ej. `traefik.yaml`, `dynamic/`, `unbound.conf`, `AdGuardHome.yaml`) la copia ahí `scripts/sync_appdata.sh` desde el repo, porque dockhand solo escribe el `compose`.
+- **Rescate sin UI:** si dockhand cae, basta SSH al host y `docker compose` a mano sobre la receta en `/opt/homelab/stacks/...` (o copiar lo que haga falta a `appdata`).
+
+### Convención de `.env` y variables
+
+Cada compose gestionado por dockhand carga **dos** ficheros de entorno y usa una variable por stack para los volúmenes:
+
+```yaml
+env_file:
+  - /opt/homelab/docker/.env   # del HOST: PUID/PGID/TZ/APPDATA… (lo monta hawser)
+  - .env                        # del STACK: secretos/config (lo gestiona dockhand)
+volumes:
+  - ${APPDATA_DIR}/data:/data   # APPDATA_DIR=/opt/homelab/appdata/<svc> (en el .env del stack)
+```
+
+- `/opt/homelab/docker/.env` es **local a cada host** (mismo path, contenido propio): `create_estructure.sh` autodetecta `PUID/PGID` del usuario real (`${SUDO_UID:-$(id -u)}`). `hawser` lo monta en `:ro` y, como ejecuta el compose en el host destino, cada host inyecta sus propios uids — clave para hosts remotos con uid distinto.
+- `APPDATA_DIR` es **una sola variable por stack** (ruta absoluta). Mover los datos de un servicio = cambiar esa línea en el `.env` del stack.
+- Las rutas de volúmenes son **absolutas** porque `hawser` ejecuta en el host destino (las relativas no valen en hosts remotos).
 
 ---
 
@@ -37,18 +72,21 @@ Docker y Docker Compose **no** son requisitos previos: los instala `scripts/inst
 
 ```
 .
-├── docker/                      Stacks Docker Compose (uno por servicio)
-│   ├── .env                     Variables globales no sensibles
+├── docker/                      Bootstrap por terminal (solo estos)
+│   ├── .env                     Variables del host (PUID/PGID/TZ/APPDATA/STACKS_BASE…)
+│   ├── hawser/                  Agente de escritura de dockhand (socket rw + STACKS_DIR)
+│   └── dockhand/                Gestor visual de stacks
+├── stacks-templates/            Recetas de los stacks que gestiona dockhand
 │   ├── adguard/                 DNS con filtrado
+│   ├── authentik/               SSO / proveedor de identidad
 │   ├── beszel/                  Monitorización ligera
 │   ├── cloudflare/              Cloudflare Tunnel + companion para Traefik
-│   ├── dockhand/                Gestión visual de stacks
 │   ├── dozzle/                  Logs de contenedores en vivo
 │   ├── duplicati/               Backups
 │   ├── filebrowser/             Explorador de ficheros web
 │   ├── homarr/                  Dashboard principal
 │   ├── nutify/                  Notificaciones / monitor UPS
-│   ├── socket-proxy/            Proxy lectura + lectura-escritura al socket
+│   ├── socket-proxy/            Proxy read-only al socket Docker
 │   ├── tailscale/               VPN mesh (network_mode: host)
 │   ├── traefik/                 Reverse proxy + TLS (Let's Encrypt)
 │   ├── unbound/                 DNS recursivo (DNSSEC)
@@ -58,16 +96,20 @@ Docker y Docker Compose **no** son requisitos previos: los instala `scripts/inst
 └── scripts/                     Scripts de bootstrap del host
     ├── init.sh                  Orquestador (lanza todo lo demás en orden)
     ├── auto_update.sh           Cron diario apt-get upgrade
+    ├── set_ip.sh                IP estática del host (netplan)
     ├── update_unbound_roots.sh  Cron mensual root.hints + root.key
     ├── disable_ipv6.sh          Desactiva IPv6 (sysctl)
-    ├── disable_dns.sh           Desactiva stub de systemd-resolved
+    ├── disable_dns.sh           Libera el puerto 53 (stub de systemd-resolved)
     ├── fix_unmask.sh            umask 027 para el usuario
-    ├── create_estructure.sh     Crea /opt/homelab y .env global
+    ├── create_estructure.sh     Crea /opt/homelab/{docker,stacks,appdata} y el .env del host
     ├── fix_overcommit.sh        sysctl vm.overcommit_memory (Redis de Homarr)
+    ├── sync_appdata.sh          Copia la config versionada a /opt/homelab/appdata
     ├── fix_permissions.sh       Refuerza propietario y modos
     ├── install_docker.sh        Instala Docker Engine + Compose plugin
     └── create_docker_network.sh Crea las 3 redes externas del homelab
 ```
+
+En tiempo de ejecución, el host además tiene `/opt/homelab/stacks/` (recetas que escribe dockhand) y `/opt/homelab/appdata/` (config + datos), que **no** están en el repo.
 
 ---
 
@@ -75,38 +117,38 @@ Docker y Docker Compose **no** son requisitos previos: los instala `scripts/inst
 
 1. Clona o copia este repositorio en el host (ej. `/root/homelab`).
 
-2. Ejecuta el bootstrap completo (todo en orden y de forma idempotente):
+2. Ejecuta el bootstrap completo (idempotente):
 
    ```bash
    sudo ./scripts/init.sh
    ```
 
-   Esto deja el sistema preparado: actualizado, sin IPv6, con DNS del host bien configurado, con `/opt/homelab/` creado, con Docker instalado y con las redes `homelab_web`, `homelab_socket` y `homelab_dns` ya creadas.
+   Deja el sistema preparado: actualizado, IP estática, sin IPv6, DNS del host configurado, `/opt/homelab/{docker,stacks,appdata}` creado, Docker instalado, las redes `homelab_web`, `homelab_socket` y `homelab_dns` creadas, y la config versionada copiada a `appdata` (`sync_appdata.sh`).
 
-3. Sincroniza el directorio `docker/` de este repo a `/opt/homelab/docker/`:
+3. Copia el bootstrap a `/opt/homelab/docker/` y crea sus `.env`:
 
    ```bash
-   sudo rsync -a --delete ./docker/ /opt/homelab/docker/
+   sudo rsync -a ./docker/ /opt/homelab/docker/
+   # crea /opt/homelab/docker/hawser/.env y /opt/homelab/docker/dockhand/.env (600, root)
    sudo ./scripts/fix_permissions.sh
    ```
 
-4. Crea los ficheros `.env` por stack (cada carpeta de `docker/<servicio>/` necesita el suyo). Como mínimo deben definir:
+   - `hawser/.env`: `PORT=2376`, `STACKS_DIR=/opt/homelab/stacks`, `TOKEN=<token>`.
+   - `dockhand/.env`: `HOST_DATA_DIR` y `STACK_DIR` del propio dockhand.
 
-   ```ini
-   STACK_DIR=/opt/homelab/docker/<servicio>
-   ```
-
-   Más cualquier secreto propio del servicio (token de Cloudflare para Traefik, credencial de Tailscale, etc.). Estos `.env` son **600**, propiedad de root, y no deben subirse a git.
-
-5. Levanta los stacks en orden:
+4. Levanta `hawser` y `dockhand` por terminal:
 
    ```bash
-   cd /opt/homelab/docker/socket-proxy && docker compose up -d
-   cd /opt/homelab/docker/unbound      && docker compose up -d
-   cd /opt/homelab/docker/adguard      && docker compose up -d
-   cd /opt/homelab/docker/traefik      && docker compose up -d
-   # …luego el resto en cualquier orden
+   cd /opt/homelab/docker/hawser   && docker compose up -d
+   cd /opt/homelab/docker/dockhand && docker compose up -d
    ```
+
+5. Entra en dockhand (`http://<IP_LAN>:8085`) y:
+   - Registra el host: **Settings → Environments → Add** → *Hawser*, URL `http://hawser:2376`, con el `TOKEN` de `hawser/.env`.
+   - Crea cada stack a partir de su receta en `stacks-templates/<svc>/`, definiendo en el `.env` del stack `APPDATA_DIR=/opt/homelab/appdata/<svc>` y sus secretos.
+   - Orden recomendado: `socket-proxy` → `unbound` → `adguard` → `traefik` (+ `error-pages`) → resto.
+
+   > Cada host nuevo que añadas necesita su `/opt/homelab/docker/.env` (lo genera `init.sh`/`create_estructure.sh` con sus propios uids) y `hawser` instalado allí.
 
 ---
 
@@ -119,7 +161,7 @@ Todas se crean en `scripts/create_docker_network.sh` y los compose se conectan a
 | Red | Para qué sirve |
 | --- | --- |
 | `homelab_web` | Tráfico HTTP/HTTPS que pasa por Traefik. |
-| `homelab_socket` | Acceso al socket de Docker, siempre vía `socket-proxy`. |
+| `homelab_socket` | Plano del socket Docker: lectura vía `socket-proxy-ro`; `hawser` es la única excepción con socket crudo (rw). |
 | `homelab_dns` | Plano DNS interno (AdGuard ↔ Unbound). |
 
 ### Cadena DNS
@@ -128,54 +170,46 @@ Todas se crean en `scripts/create_docker_network.sh` y los compose se conectan a
 clientes → AdGuard (53, filtrado) → Unbound (5335, recursivo + DNSSEC) → raíz
 ```
 
-`scripts/disable_dns.sh` libera el puerto 53 desactivando el stub listener de `systemd-resolved`. Un cron mensual (`scripts/update_unbound_roots.sh`) refresca `root.hints` y `root.key` y reinicia Unbound.
+`scripts/disable_dns.sh` libera el puerto 53 desactivando el stub listener de `systemd-resolved`. Un cron mensual (`scripts/update_unbound_roots.sh`) refresca `root.hints` y `root.key` de Unbound (en `appdata/unbound/`) y reinicia el contenedor.
 
-### Traefik sin acceso directo al socket
+### Socket de Docker: socket-proxy-ro + hawser
 
-Traefik nunca monta `/var/run/docker.sock`. Habla con `socket-proxy-ro` (read-only) por `tcp://socket-proxy-ro:2375`. Existe además un `socket-proxy` (read-write) para los pocos servicios que sí necesitan escritura.
+Ningún servicio expuesto monta `/var/run/docker.sock` directamente.
 
-- Configuración estática: `docker/traefik/traefik.yaml` (entrypoints, providers, ACME).
-- Configuración dinámica (rutas/middlewares): `docker/traefik/dynamic/*.yaml` (file-provider).
+- **Lectura:** `socket-proxy-ro` (read-only, expone solo PING/VERSION/EVENTS/CONTAINERS/NETWORKS) por `tcp://socket-proxy-ro:2375` en `homelab_socket`. Lo usan Traefik, dozzle, beszel, cloudflare-companion y homarr.
+- **Escritura:** `hawser`, el agente de dockhand. Es el único contenedor que monta el socket crudo (rw); dockhand habla con él por token (`http://hawser:2376`). No hay un `socket-proxy` read-write.
+
+### Traefik
+
+- Configuración estática: `traefik.yaml` (entrypoints, providers, ACME).
+- Configuración dinámica (rutas/middlewares): `dynamic/*.yaml` (file-provider).
+- En el repo viven en `stacks-templates/traefik/`; en el host se montan desde `/opt/homelab/appdata/traefik/` (las copia `sync_appdata.sh`).
 - TLS automático con **Let's Encrypt**, reto **DNS-01 contra Cloudflare**.
 - Dos resolvers: `letsencrypt-staging` (por defecto) y `letsencrypt-production`. Cambia el resolver activo en `entryPoints.websecure` cuando todo funcione en staging.
 - Páginas de error servidas por `tarampampam/error-pages` (router catch-all `error-pages-fallback`).
 - Cabeceras seguras por defecto vía middleware `secure-headers` (HSTS, X-Frame-Options, CSP, etc.).
 
-### Convención de ficheros `.env`
-
-Cada compose carga **dos** ficheros:
-
-```yaml
-env_file:
-  - /opt/homelab/docker/.env              # global (no sensible)
-  - /opt/homelab/docker/<servicio>/.env   # por-stack (secretos + STACK_DIR)
-```
-
-El `docker/.env` versionado en este repo contiene únicamente valores por defecto no sensibles:
-
-```ini
-PUID=1000
-PGID=1000
-TZ=Europe/Madrid
-FQDN=example.com
-HOMELAB_BASE=/opt/homelab
-```
-
-Los `.env` por servicio se crean en el host, son `600` propiedad de root, y deben definir `STACK_DIR`.
-
 ---
 
 ## Servicios incluidos
+
+Bootstrap (por terminal):
+
+| Stack | Imagen | Puerto host | Función |
+| --- | --- | --- | --- |
+| hawser | `ghcr.io/finsys/hawser` | — (interno 2376) | Agente de escritura de dockhand (socket rw) |
+| dockhand | `fnsys/dockhand` | 8085 | Gestor visual de stacks |
+
+Gestionados por dockhand:
 
 | Stack | Imagen | Puerto host | Función |
 | --- | --- | --- | --- |
 | traefik | `traefik:latest` | 80, 443, 8080 | Reverse proxy + TLS automático |
 | error-pages | `tarampampam/error-pages` | 8090 | Páginas de error personalizadas |
-| socket-proxy | `lscr.io/linuxserver/socket-proxy` | 2375 (rw), 2376 (ro) | Acceso controlado al socket Docker |
+| socket-proxy | `lscr.io/linuxserver/socket-proxy` | — (interno 2375, read-only) | Acceso de solo lectura al socket Docker |
 | unbound | `mvance/unbound` | — (interno 5335) | DNS recursivo con DNSSEC |
 | adguard | `adguard/adguardhome` | 53, 8054 | DNS con filtrado de anuncios |
 | homarr | `ghcr.io/homarr-labs/homarr` | 7575 | Dashboard del homelab |
-| dockhand | `fnsys/dockhand` | 8085 | Gestor visual de stacks |
 | dozzle | `amir20/dozzle` | 8086 | Logs en vivo de contenedores |
 | beszel | `henrygd/beszel` | 8091 | Métricas de servidores |
 | uptime-kuma | `louislam/uptime-kuma` | 3013 | Monitor de uptime |
@@ -185,6 +219,7 @@ Los `.env` por servicio se crean en el host, son `600` propiedad de root, y debe
 | vaultwarden | `vaultwarden/server` | 8222 | Gestor de contraseñas |
 | wgdashboard | `ghcr.io/wgdashboard/wgdashboard` | 10086, 51820/udp | Panel WireGuard |
 | tailscale | `tailscale/tailscale` | host network | VPN mesh |
+| authentik | `ghcr.io/goauthentik/server` | 9000, 9443 | SSO / proveedor de identidad |
 | cloudflare-tunnels | `cloudflare/cloudflared` | — | Túnel Cloudflare |
 | cloudflare-companion | `tiredofit/docker-traefik-cloudflare-companion` | — | Sincroniza routers de Traefik con DNS de Cloudflare |
 
@@ -192,7 +227,7 @@ Los `.env` por servicio se crean en el host, son `600` propiedad de root, y debe
 
 ## Authentik — SSO y autenticación centralizada
 
-Authentik actúa como proveedor de identidad (IdP) para el homelab. En este setup se usa el modo **Proxy Provider + ForwardAuth de Traefik**: Traefik intercepta cada petición antes de que llegue al servicio y consulta a Authentik. Si no hay sesión válida, redirige al login.
+Authentik actúa como proveedor de identidad (IdP) para el homelab. Se usa el modo **Proxy Provider + ForwardAuth de Traefik**: Traefik intercepta cada petición antes de que llegue al servicio y consulta a Authentik. Si no hay sesión válida, redirige al login.
 
 > **Nota de versión:** Redis fue eliminado en Authentik 2025.10. A partir de esa versión (y en la 2026.x), toda la caché, tareas y sesiones usan PostgreSQL. No es necesario desplegar Redis.
 
@@ -204,28 +239,29 @@ Browser → Cloudflare → Traefik → [ForwardAuth] → Authentik
                                     Servicio
 ```
 
-Authentik corre como tres contenedores en el stack `docker/authentik/`:
+Authentik corre como tres contenedores en el stack `authentik`:
 
 | Contenedor | Función |
 | --- | --- |
 | `authentik-server` | Servidor principal + outpost embebido (ForwardAuth) |
-| `authentik-worker` | Procesado de tareas en background, gestión de outposts |
+| `authentik-worker` | Procesado de tareas en background |
 | `authentik-postgresql` | Base de datos (también gestiona caché y sesiones desde 2025.10) |
 
 ### Redes
 
 | Red | Contenedores |
 | --- | --- |
-| `homelab_web` | `authentik-server` — Traefik lo alcanza aquí |
-| `homelab_socket` | `authentik-worker` — accede a `socket-proxy` (rw) para gestionar outposts |
+| `homelab_web` | `authentik-server` (y `authentik-worker`) — Traefik alcanza al server aquí |
 | `authentik_internal` | Todos los contenedores del stack — red interna aislada |
 
-### Variables de entorno
+> El **outpost embebido** corre dentro de `authentik-server` y no gestiona contenedores, así que Authentik **no** necesita el socket de Docker (ni `homelab_socket`).
 
-Fichero `/opt/homelab/docker/authentik/.env` (modo `600`, propietario `root`):
+### Variables del stack (en dockhand)
+
+Define en el `.env` del stack `authentik` (gestionado por dockhand; modo `600` en el host):
 
 ```ini
-STACK_DIR=/opt/homelab/docker/authentik
+APPDATA_DIR=/opt/homelab/appdata/authentik
 
 # PostgreSQL
 POSTGRES_DB=authentik
@@ -250,7 +286,9 @@ openssl rand 32 | base64 -w 0   # para POSTGRES_PASSWORD
 
 ### Configuración de Traefik
 
-**`docker/traefik/dynamic/authentik.yaml`** — expone la UI de Authentik:
+Los ficheros dinámicos viven en `stacks-templates/traefik/dynamic/` (repo) y se sirven desde `/opt/homelab/appdata/traefik/dynamic/` en el host (`sync_appdata.sh`).
+
+**`dynamic/authentik.yaml`** — expone la UI de Authentik:
 
 ```yaml
 http:
@@ -273,7 +311,7 @@ http:
           - url: "http://authentik-server:9000"
 ```
 
-**`docker/traefik/dynamic/middlewares.yaml`** — añade el middleware ForwardAuth junto a los demás middlewares existentes:
+**`dynamic/middlewares.yaml`** — añade el middleware ForwardAuth junto a los demás:
 
 ```yaml
 http:
@@ -428,13 +466,13 @@ Valores de referencia del homelab:
 
 ### 1. Tokens de API
 
-En **My Profile → API Tokens** crea los tokens necesarios y guárdalos en los `.env` correspondientes (modo `600`, propietario `root`):
+En **My Profile → API Tokens** crea los tokens necesarios y guárdalos en el `.env` del stack correspondiente (en dockhand; modo `600`, propietario `root`):
 
 | Variable | Permisos mínimos | Dónde se usa |
 | --- | --- | --- |
-| `CF_TOKEN` | `Zone.DNS:Edit`, `Zone.Zone:Read` | `docker/cloudflare/.env` (companion) |
-| `CLOUDFLARE_API_TOKEN` | `Zone.DNS:Edit`, `Zone.Zone:Read` | `docker/traefik/.env` (reto DNS-01 de Let's Encrypt) |
-| `TUNNEL_TOKEN` | Lo entrega el wizard del túnel | `docker/cloudflare/.env` (cloudflared) |
+| `CF_TOKEN` | `Zone.DNS:Edit`, `Zone.Zone:Read` | stack `cloudflare` (companion) |
+| `CLOUDFLARE_API_TOKEN` | `Zone.DNS:Edit`, `Zone.Zone:Read` | stack `traefik` (reto DNS-01 de Let's Encrypt) |
+| `TUNNEL_TOKEN` | Lo entrega el wizard del túnel | stack `cloudflare` (cloudflared) |
 
 `CF_TOKEN` y `CLOUDFLARE_API_TOKEN` pueden ser el mismo token si los permisos coinciden, pero conviene separarlos para poder revocarlos por servicio.
 
@@ -453,75 +491,71 @@ Con esto, Cloudflare entrega cualquier `*.example.com` al contenedor `traefik` p
 
 ### 3. CNAMEs automáticos (cloudflare-companion)
 
-El servicio `cloudflare-companion` lee la configuración de Traefik (tanto labels como ficheros dinámicos en `docker/traefik/dynamic/`) y crea automáticamente los CNAMEs que apuntan a `example.com`. No hay que mantener registros DNS a mano por cada servicio nuevo.
+El servicio `cloudflare-companion` lee la configuración de Traefik (labels y ficheros dinámicos) y crea automáticamente los CNAMEs que apuntan a `example.com`. No hay que mantener registros DNS a mano por cada servicio nuevo.
 
 Los subdominios `internal` y `home` están **excluidos** por configuración para reservarlos a uso local.
 
 ### 4. Verificación
 
-Tras arrancar el stack `cloudflare`:
-
-```bash
-cd /opt/homelab/docker/cloudflare
-docker compose logs -f cloudflare-tunnels cloudflare-companion
-```
-
-Comprueba que `cloudflare-tunnels` muestra el túnel `Registered` y que `cloudflare-companion` reporta `Created CNAME` por cada router que tengas dado de alta en Traefik.
+Tras arrancar el stack `cloudflare`, revisa los logs de `cloudflare-tunnels` y `cloudflare-companion` desde dockhand (o por `docker compose logs` sobre la receta en `/opt/homelab/stacks/...`). Comprueba que el túnel sale como `Registered` y que el companion reporta `Created CNAME` por cada router dado de alta en Traefik.
 
 ---
 
 ## Operación habitual
 
-Trabaja siempre desde el directorio del stack (para que `${STACK_DIR}` se resuelva):
+- **Servicios gestionados por dockhand:** opéralos desde la UI (deploy, logs, restart, update). Las recetas viven en `/opt/homelab/stacks/{env}/{stack}/`.
+- **Bootstrap (`hawser`, `dockhand`):** por terminal.
 
-```bash
-cd /opt/homelab/docker/<servicio>
+  ```bash
+  cd /opt/homelab/docker/<hawser|dockhand>
+  docker compose up -d            # levantar
+  docker compose ps               # estado
+  docker compose logs -f          # logs
+  docker compose pull && docker compose up -d   # actualizar
+  docker compose down             # parar
+  ```
 
-docker compose up -d            # levantar
-docker compose ps               # estado
-docker compose logs -f          # logs en vivo
-docker compose pull && docker compose up -d   # actualizar
-docker compose down             # parar
-```
+- **Rescate sin UI:** SSH al host y `docker compose` directamente sobre la receta en `/opt/homelab/stacks/...`.
+- **Cambios de config versionada** (traefik.yaml, dynamic/, unbound.conf…): edítalos en el repo (`stacks-templates/<svc>/`) y reejecuta `sudo ./scripts/sync_appdata.sh` para llevarlos a `appdata`.
 
-Logs de Traefik (acceso y servicio) en `docker/traefik/logs/`.
+Logs de Traefik (acceso y servicio) en `/opt/homelab/appdata/traefik/logs/`.
 
 ---
 
 ## Añadir un servicio nuevo
 
-1. Crea `docker/<servicio>/docker-compose.yaml`. Usa `container_name`, `hostname`, `restart: unless-stopped`.
-2. Carga los dos `env_file` (global + por-stack).
-3. Referencia rutas vía `${STACK_DIR}` — nunca hardcodees `/opt/homelab/docker/<servicio>`.
-4. Conéctate a las redes externas existentes; **no** declares redes nuevas inline. `homelab_web` si se expone por Traefik, `homelab_socket` sólo si necesitas socket-proxy, `homelab_dns` sólo para plano DNS.
-5. Para exponerlo vía Traefik:
-   - Copia `docker/traefik/dynamic/_router-template.yaml` a `docker/traefik/dynamic/<servicio>.yaml`.
+1. Crea la receta en `stacks-templates/<servicio>/docker-compose.yaml`. Usa `container_name`, `hostname`, `restart: unless-stopped`.
+2. `env_file`: el común del host (`/opt/homelab/docker/.env`) + el `.env` del stack (relativo). Define `APPDATA_DIR=/opt/homelab/appdata/<servicio>` en el `.env` del stack.
+3. Referencia los volúmenes vía `${APPDATA_DIR}/...` (ruta absoluta) — nunca hardcodees la ruta.
+4. Conéctate a las redes externas existentes; **no** declares redes nuevas inline. `homelab_web` si se expone por Traefik, `homelab_socket` solo si necesitas `socket-proxy-ro`, `homelab_dns` solo para plano DNS.
+5. Si lleva config en fichero, ponla en `stacks-templates/<servicio>/` y se copiará a `appdata` con `sync_appdata.sh`.
+6. Para exponerlo vía Traefik:
+   - Copia `stacks-templates/traefik/dynamic/_router-template.yaml` a `stacks-templates/traefik/dynamic/<servicio>.yaml`.
    - Edítalo apuntando al host interno (`http://<container>:<port>`).
    - Aplica middlewares `secure-headers` y `error-pages`.
    - **No** uses `labels` de Traefik en el compose (el provider está con `exposedByDefault: false`).
-6. Sincroniza al host y ejecuta:
+7. Sincroniza la config y crea el stack en dockhand:
 
    ```bash
-   sudo rsync -a ./docker/<servicio>/ /opt/homelab/docker/<servicio>/
-   sudo ./scripts/fix_permissions.sh
-   cd /opt/homelab/docker/<servicio> && docker compose up -d
+   sudo ./scripts/sync_appdata.sh   # lleva la config a appdata
    ```
+
+   Luego, en la UI de dockhand, crea el stack a partir de la receta y despliégalo en el environment del host.
 
 ---
 
 ## Seguridad y permisos
 
 - **umask 027** para el usuario (`fix_unmask.sh`): nuevos ficheros `640`, nuevas carpetas `750`.
-- **`fix_permissions.sh`** refuerza, sobre todo `/opt/homelab`:
-  - Propietario `1000:1000` recursivo.
+- **`fix_permissions.sh`** refuerza, sobre todo `/opt/homelab` (usa `-xdev`: no cruza a montajes externos como un NAS):
+  - Propietario detectado (`${SUDO_UID:-$(id -u)}:${SUDO_GID:-...}`) recursivo.
   - Carpetas `750`, ficheros `640`.
-  - `*.sh` → `750`.
-  - `*.env` → `600`.
+  - `*.sh` → `750`, `*.env` → `600`.
   - Carpetas `secret(s)/` → `700`.
   - Ficheros `*.pem`, `*.key`, `id_rsa`, `id_ed25519` → `600`.
   - `.git/` se ignora.
 - IPv6 deshabilitado a nivel kernel (`/etc/sysctl.d/99-homelab-disable-ipv6.conf`).
-- Acceso al socket Docker **siempre** a través de `socket-proxy` (variante read-only por defecto).
+- Acceso al socket Docker: lectura vía `socket-proxy-ro`; escritura solo por `hawser` (con token), único contenedor con el socket crudo.
 - Cabeceras HTTPS endurecidas vía middleware `secure-headers` de Traefik (HSTS, CSP, frame-deny, etc.).
 
 Re-ejecuta `sudo ./scripts/fix_permissions.sh` tras cualquier copia manual dentro de `/opt/homelab`.
