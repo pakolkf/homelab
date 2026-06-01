@@ -10,6 +10,8 @@ echo "Creando estructura del homelab..."
 # Config base
 HOMELAB_BASE="/opt/homelab"
 DOCKER_BASE="${HOMELAB_BASE}/docker"
+STACKS_BASE="${HOMELAB_BASE}/stacks"
+APPDATA="${HOMELAB_BASE}/appdata"
 ENV_FILE="${DOCKER_BASE}/.env"
 
 PUID=1000
@@ -20,6 +22,8 @@ TZ="Europe/Madrid"
 DIRS=(
   "${HOMELAB_BASE}"
   "${DOCKER_BASE}"
+  "${STACKS_BASE}"
+  "${APPDATA}"
 )
 
 echo "Creando directorios..."
@@ -41,6 +45,8 @@ PGID=${PGID}
 TZ=${TZ}
 HOMELAB_BASE=${HOMELAB_BASE}
 DOCKER_BASE=${DOCKER_BASE}
+STACKS_BASE=${STACKS_BASE}
+APPDATA=${APPDATA}
 EOF
 
   chown root:root "${ENV_FILE}"
