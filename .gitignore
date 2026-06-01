@@ -14,7 +14,7 @@ docker/**/.env.local
 # Runtime / datos persistentes de los stacks
 # =========================================================
 # Volúmenes y estado generados en tiempo de ejecución.
-# Las recetas (docker-compose.yml, *.yml de config) sí se versionan.
+# Las recetas (docker-compose.yaml, *.yaml de config) sí se versionan.
 
 # Genéricos (cubre la mayoría de stacks: appdata, data, config, logs, backups…)
 docker/*/appdata/

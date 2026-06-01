@@ -14,7 +14,7 @@ services:
       - 443:443
       - 8080:8080
     volumes:
-      - ${STACK_DIR}/traefik.yml:/traefik.yml:ro
+      - ${STACK_DIR}/traefik.yaml:/traefik.yaml:ro
       - ${STACK_DIR}/dynamic:/etc/traefik/dynamic:ro
       - ${STACK_DIR}/letsencrypt:/letsencrypt
       - ${STACK_DIR}/logs:/var/log/traefik

@@ -1,4 +1,4 @@
-# Plantilla Traefik (con LE) -- copia como <servicio>.yml
+# Plantilla Traefik (con LE) -- copia como <servicio>.yaml
 # http:
 #   routers:
 #     mi-servicio:
