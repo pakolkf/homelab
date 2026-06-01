@@ -13,6 +13,7 @@ Todo el stack está pensado para vivir en `/opt/homelab/` del host. Este reposit
 - [Instalación rápida](#instalación-rápida)
 - [Arquitectura](#arquitectura)
 - [Servicios incluidos](#servicios-incluidos)
+- [Authentik — SSO y autenticación centralizada](#authentik--sso-y-autenticación-centralizada)
 - [Configuración previa en Cloudflare](#configuración-previa-en-cloudflare)
 - [Operación habitual](#operación-habitual)
 - [Añadir un servicio nuevo](#añadir-un-servicio-nuevo)
@@ -25,7 +26,7 @@ Todo el stack está pensado para vivir en `/opt/homelab/` del host. Este reposit
 
 - Host con **Ubuntu / Debian** (los scripts usan `apt-get` y `systemd-resolved`).
 - Acceso `root` (vía `sudo`).
-- Dominio propio gestionado en **Cloudflare** (necesario para el reto DNS-01 de Let's Encrypt). El dominio por defecto en la config es `example.com` — cámbialo en `docker/.env` y en `docker/traefik/traefik.yml`.
+- Dominio propio gestionado en **Cloudflare** (necesario para el reto DNS-01 de Let's Encrypt). El dominio por defecto en la config es `example.com` — cámbialo en `docker/.env` y en `docker/traefik/traefik.yaml`.
 - Conectividad saliente a los registros de imagen y a Let's Encrypt.
 
 Docker y Docker Compose **no** son requisitos previos: los instala `scripts/install_docker.sh`.
@@ -133,8 +134,8 @@ clientes → AdGuard (53, filtrado) → Unbound (5335, recursivo + DNSSEC) → r
 
 Traefik nunca monta `/var/run/docker.sock`. Habla con `socket-proxy-ro` (read-only) por `tcp://socket-proxy-ro:2375`. Existe además un `socket-proxy` (read-write) para los pocos servicios que sí necesitan escritura.
 
-- Configuración estática: `docker/traefik/traefik.yml` (entrypoints, providers, ACME).
-- Configuración dinámica (rutas/middlewares): `docker/traefik/dynamic/*.yml` (file-provider).
+- Configuración estática: `docker/traefik/traefik.yaml` (entrypoints, providers, ACME).
+- Configuración dinámica (rutas/middlewares): `docker/traefik/dynamic/*.yaml` (file-provider).
 - TLS automático con **Let's Encrypt**, reto **DNS-01 contra Cloudflare**.
 - Dos resolvers: `letsencrypt-staging` (por defecto) y `letsencrypt-production`. Cambia el resolver activo en `entryPoints.websecure` cuando todo funcione en staging.
 - Páginas de error servidas por `tarampampam/error-pages` (router catch-all `error-pages-fallback`).
@@ -186,6 +187,232 @@ Los `.env` por servicio se crean en el host, son `600` propiedad de root, y debe
 | tailscale | `tailscale/tailscale` | host network | VPN mesh |
 | cloudflare-tunnels | `cloudflare/cloudflared` | — | Túnel Cloudflare |
 | cloudflare-companion | `tiredofit/docker-traefik-cloudflare-companion` | — | Sincroniza routers de Traefik con DNS de Cloudflare |
+
+---
+
+## Authentik — SSO y autenticación centralizada
+
+Authentik actúa como proveedor de identidad (IdP) para el homelab. En este setup se usa el modo **Proxy Provider + ForwardAuth de Traefik**: Traefik intercepta cada petición antes de que llegue al servicio y consulta a Authentik. Si no hay sesión válida, redirige al login.
+
+> **Nota de versión:** Redis fue eliminado en Authentik 2025.10. A partir de esa versión (y en la 2026.x), toda la caché, tareas y sesiones usan PostgreSQL. No es necesario desplegar Redis.
+
+### Arquitectura
+
+```
+Browser → Cloudflare → Traefik → [ForwardAuth] → Authentik
+                                       ↓ OK
+                                    Servicio
+```
+
+Authentik corre como tres contenedores en el stack `docker/authentik/`:
+
+| Contenedor | Función |
+| --- | --- |
+| `authentik-server` | Servidor principal + outpost embebido (ForwardAuth) |
+| `authentik-worker` | Procesado de tareas en background, gestión de outposts |
+| `authentik-postgresql` | Base de datos (también gestiona caché y sesiones desde 2025.10) |
+
+### Redes
+
+| Red | Contenedores |
+| --- | --- |
+| `homelab_web` | `authentik-server` — Traefik lo alcanza aquí |
+| `homelab_socket` | `authentik-worker` — accede a `socket-proxy` (rw) para gestionar outposts |
+| `authentik_internal` | Todos los contenedores del stack — red interna aislada |
+
+### Variables de entorno
+
+Fichero `/opt/homelab/docker/authentik/.env` (modo `600`, propietario `root`):
+
+```ini
+STACK_DIR=/opt/homelab/docker/authentik
+
+# PostgreSQL
+POSTGRES_DB=authentik
+POSTGRES_USER=authentik
+POSTGRES_PASSWORD=<password_seguro>
+
+# Authentik
+AUTHENTIK_POSTGRESQL__HOST=authentik-postgresql
+AUTHENTIK_POSTGRESQL__NAME=authentik
+AUTHENTIK_POSTGRESQL__USER=authentik
+AUTHENTIK_POSTGRESQL__PASSWORD=<password_seguro>
+AUTHENTIK_SECRET_KEY=<clave_aleatoria_60_chars>
+AUTHENTIK_ERROR_REPORTING__ENABLED=false
+```
+
+Genera los valores aleatorios con:
+
+```bash
+openssl rand 60 | base64 -w 0   # para AUTHENTIK_SECRET_KEY
+openssl rand 32 | base64 -w 0   # para POSTGRES_PASSWORD
+```
+
+### Configuración de Traefik
+
+**`docker/traefik/dynamic/authentik.yaml`** — expone la UI de Authentik:
+
+```yaml
+http:
+  routers:
+    authentik:
+      rule: "Host(`auth.example.com`)"
+      entryPoints:
+        - websecure
+      service: authentik
+      middlewares:
+        - secure-headers
+        - error-pages
+      tls:
+        certResolver: cloudflare
+
+  services:
+    authentik:
+      loadBalancer:
+        servers:
+          - url: "http://authentik-server:9000"
+```
+
+**`docker/traefik/dynamic/middlewares.yaml`** — añade el middleware ForwardAuth junto a los demás middlewares existentes:
+
+```yaml
+http:
+  middlewares:
+    authentik-auth:
+      forwardAuth:
+        address: "http://authentik-server:9000/outpost.goauthentik.io/auth/traefik"
+        trustForwardHeader: true
+        authResponseHeaders:
+          - X-authentik-username
+          - X-authentik-groups
+          - X-authentik-email
+          - X-authentik-name
+          - X-authentik-uid
+          - X-authentik-jwt
+          - X-authentik-meta-jwks
+          - X-authentik-meta-outpost
+          - X-authentik-meta-provider
+          - X-authentik-meta-app
+          - X-authentik-meta-version
+```
+
+Para proteger un servicio, añade el middleware `authentik-auth` a su router en `dynamic/<servicio>.yaml`:
+
+```yaml
+http:
+  routers:
+    <servicio>:
+      rule: "Host(`<servicio>.example.com`)"
+      entryPoints:
+        - websecure
+      middlewares:
+        - authentik-auth
+        - secure-headers
+        - error-pages
+      service: <servicio>
+      tls:
+        certResolver: cloudflare
+```
+
+### Setup inicial en Authentik
+
+Una vez levantado el stack, accede a `http://<IP_LAN>:9000/if/flow/initial-setup/` para crear el usuario administrador.
+
+#### 1. Configurar el Brand
+
+Ve a **System → Brands** y edita el brand por defecto:
+
+- **Domain**: `auth.example.com`
+- **Default**: ✓
+
+#### 2. Crear un Proxy Provider por cada servicio a proteger
+
+Ve a **Applications → Providers → Create → Proxy Provider**:
+
+| Campo | Valor |
+| --- | --- |
+| Name | `<servicio>-provider` |
+| Authorization flow | `default-provider-authorization-implicit-consent` |
+| Type | `Forward auth (single application)` |
+| External host | `https://<servicio>.example.com` |
+| Cookie domain | `example.com` |
+
+#### 3. Crear una Application por cada servicio
+
+Ve a **Applications → Applications → Create**:
+
+| Campo | Valor |
+| --- | --- |
+| Name | `<Servicio>` |
+| Slug | `<servicio>` |
+| Provider | `<servicio>-provider` |
+| Launch URL | `https://<servicio>.example.com` |
+
+#### 4. Asignar las Applications al Outpost embebido
+
+Ve a **Applications → Outposts**, edita `authentik Embedded Outpost` y asigna todas las aplicaciones que quieras proteger.
+
+#### 5. Configurar el Outpost
+
+En la configuración avanzada del outpost establece:
+
+```yaml
+authentik_host: https://auth.example.com
+authentik_host_browser: https://auth.example.com
+authentik_host_insecure: false
+log_level: info
+docker_network: null
+docker_map_ports: true
+refresh_interval: minutes=5
+```
+
+Guarda y reinicia el servidor para que el outpost embebido recargue la configuración:
+
+```bash
+docker restart authentik-server
+```
+
+> **Nota:** Si tras reiniciar el navegador sigue redirigiendo a `http://authentik-server:9000` en lugar del dominio público, la versión instalada no aplica el YAML de la UI al outpost embebido. En ese caso fuerza la configuración via API:
+>
+> ```bash
+> # Obtén el token desde la BD
+> docker exec authentik-postgresql psql -U authentik -d authentik \
+>   -c "SELECT identifier, key FROM authentik_core_token WHERE intent='api';"
+>
+> # Actualiza la configuración (sustituye TOKEN y UUID por los tuyos)
+> # El UUID aparece en la URL al editar el outpost
+> curl -s -X PATCH \
+>   "http://localhost:9000/api/v3/outposts/instances/<UUID>/" \
+>   -H "Authorization: Bearer <TOKEN>" \
+>   -H "Content-Type: application/json" \
+>   -d '{
+>     "config": {
+>       "authentik_host": "https://auth.example.com",
+>       "authentik_host_browser": "https://auth.example.com",
+>       "authentik_host_insecure": false,
+>       "log_level": "info",
+>       "docker_network": null,
+>       "docker_map_ports": true,
+>       "refresh_interval": "minutes=5"
+>     }
+>   }'
+>
+> docker restart authentik-server
+> ```
+
+#### 6. Acceso LAN directo (fallback)
+
+El servidor expone los puertos `9000` y `9443` directamente en la IP LAN del host para administración sin pasar por Cloudflare. Útil si el túnel no está disponible.
+
+Para que los servicios protegidos por ForwardAuth funcionen también desde LAN sin depender de Cloudflare, configura AdGuard con registros A apuntando a la IP del host para todos los subdominios del homelab.
+
+### Restricción de acceso por grupos (opcional)
+
+Por defecto cualquier usuario de Authentik puede acceder a todas las aplicaciones. Para restringir:
+
+1. Ve a **Directory → Groups → Create** y crea el grupo `homelab-admins`.
+2. Añade los usuarios al grupo.
+3. En cada Application ve a **Policy / Group / User Bindings** y vincula el grupo `homelab-admins`.
 
 ---
 
@@ -263,12 +490,12 @@ Logs de Traefik (acceso y servicio) en `docker/traefik/logs/`.
 
 ## Añadir un servicio nuevo
 
-1. Crea `docker/<servicio>/docker-compose.yml`. Usa `container_name`, `hostname`, `restart: unless-stopped`.
+1. Crea `docker/<servicio>/docker-compose.yaml`. Usa `container_name`, `hostname`, `restart: unless-stopped`.
 2. Carga los dos `env_file` (global + por-stack).
 3. Referencia rutas vía `${STACK_DIR}` — nunca hardcodees `/opt/homelab/docker/<servicio>`.
 4. Conéctate a las redes externas existentes; **no** declares redes nuevas inline. `homelab_web` si se expone por Traefik, `homelab_socket` sólo si necesitas socket-proxy, `homelab_dns` sólo para plano DNS.
 5. Para exponerlo vía Traefik:
-   - Copia `docker/traefik/dynamic/_router-template.yml` a `docker/traefik/dynamic/<servicio>.yml`.
+   - Copia `docker/traefik/dynamic/_router-template.yaml` a `docker/traefik/dynamic/<servicio>.yaml`.
    - Edítalo apuntando al host interno (`http://<container>:<port>`).
    - Aplica middlewares `secure-headers` y `error-pages`.
    - **No** uses `labels` de Traefik en el compose (el provider está con `exposedByDefault: false`).
