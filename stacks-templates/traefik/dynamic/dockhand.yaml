@@ -1,7 +1,7 @@
 http:
   routers:
     dockhand:
-      rule: "Host(`dockhand.example.com`)"
+      rule: "Host(`dockhand.${FQDN}`)"
       entryPoints:
         - websecure
       service: dockhand

@@ -17,4 +17,4 @@ http:
         stsSeconds: 31536000
         customFrameOptionsValue: "SAMEORIGIN"
         referrerPolicy: "strict-origin-when-cross-origin"
-        contentSecurityPolicy: "frame-ancestors 'self' https://*.example.com"
+        contentSecurityPolicy: "frame-ancestors 'self' https://*.${FQDN}"

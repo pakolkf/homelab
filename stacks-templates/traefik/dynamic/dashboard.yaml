@@ -1,7 +1,7 @@
 http:
   routers:
     traefik-dashboard:
-      rule: "Host(`traefik.example.com`)"
+      rule: "Host(`traefik.${FQDN}`)"
       entryPoints:
         - websecure
       service: api@internal

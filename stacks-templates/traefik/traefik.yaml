@@ -26,7 +26,7 @@ entryPoints:
       tls:
         certResolver: letsencrypt-staging
         domains:
-          - main: "example.com"
+          - main: "${FQDN}"
   dashboard:
     address: ":8080"
 
