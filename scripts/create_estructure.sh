@@ -10,7 +10,7 @@ echo "Creando estructura del homelab..."
 # Config base
 HOMELAB_BASE="/opt/homelab"
 DOCKER_BASE="${HOMELAB_BASE}/docker"
-ENV_FILE="${HOMELAB_BASE}/.env"
+ENV_FILE="${DOCKER_BASE}/.env"
 
 PUID=1000
 PGID=1000
