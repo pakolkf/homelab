@@ -10,9 +10,12 @@ services:
     ports:
       - "8085:3000"
     volumes:
-      # Solo estado interno de dockhand (db + .encryption_key). Las recetas las
-      # gestiona hawser bajo /opt/homelab/stacks; no se montan aquí.
+      # Estado interno de dockhand: db, .encryption_key y git-repos/.
       - ${STACK_DIR}/data:/app/data
+      # Recetas que crea dockhand. Respeta su estructura impuesta
+      # {DATA_DIR}/stacks/{env}/{stack} → en el host /opt/homelab/stacks/{env}/{stack}.
+      # Es el MISMO dir que el STACKS_DIR de hawser (escribe aquí, hawser ejecuta).
+      - ${STACKS_BASE}:/app/data/stacks
     networks:
       - homelab_web
       - homelab_socket

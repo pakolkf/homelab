@@ -13,6 +13,11 @@ services:
       # El dir de recetas se monta en la MISMA ruta que STACKS_DIR para que
       # los bind-mounts relativos resuelvan igual dentro y fuera del contenedor.
       - ${STACKS_BASE}:${STACKS_BASE}
+      # .env global del host (PUID/PGID/TZ). Es LOCAL a cada host: mismo path,
+      # contenido propio (autodetectado por create_estructure.sh). hawser ejecuta
+      # el compose en su host, así que los stacks que hagan env_file de esta ruta
+      # resuelven los uids correctos de CADA host (clave para hosts remotos).
+      - /opt/homelab/docker/.env:/opt/homelab/docker/.env:ro
     networks:
       - homelab_socket
 
