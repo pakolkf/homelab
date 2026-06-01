@@ -1,4 +1,4 @@
-# homelab
+# Homelab
 
 Homelab autoalojado sobre **Docker** en un host Linux (Ubuntu/Debian), con bootstrap automatizado del sistema, DNS recursivo propio, reverse proxy con TLS automático y un catálogo de servicios habituales (dashboard, gestor de ficheros, backups, monitorización, VPN…).
 
@@ -131,14 +131,16 @@ En tiempo de ejecución, el host además tiene `/opt/homelab/stacks/` (recetas q
 3. Copia el bootstrap a `/opt/homelab/docker/` y crea sus `.env`:
 
    ```bash
-   sudo rsync -a ./docker/ /opt/homelab/docker/
+   # --exclude '.env': preserva el .env que generó init.sh con tus PUID/PGID
+   # autodetectados (y los .env por-stack); el rsync NO los pisa.
+   sudo rsync -a --exclude '.env' ./docker/ /opt/homelab/docker/
    # crea /opt/homelab/docker/hawser/.env y /opt/homelab/docker/dockhand/.env (600, root)
    sudo ./scripts/fix_permissions.sh
    ```
 
    - `hawser/.env`: `PORT=2376`, `STACKS_DIR=/opt/homelab/stacks`, `TOKEN=<token>`.
    - `dockhand/.env`: `HOST_DATA_DIR` y `STACK_DIR` del propio dockhand.
-   - `docker/.env`: pon tu `FQDN` y `ACME_EMAIL` reales (no commitees ese cambio) y reejecuta `sudo ./scripts/sync_appdata.sh` para renderizar la config.
+   - `docker/.env` (ya lo generó `init.sh` con tus `PUID`/`PGID` reales — el rsync no lo toca): edita `FQDN` y `ACME_EMAIL` y reejecuta `sudo ./scripts/sync_appdata.sh` para renderizar la config.
 
 4. Levanta `hawser` y `dockhand` por terminal:
 
