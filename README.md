@@ -461,7 +461,7 @@ Esta es la configuración que hay que dejar lista en Cloudflare **antes** de lev
 Valores de referencia del homelab:
 
 - Dominio destino: `example.com`
-- Zone ID: `your-cloudflare-zone-id`
+- Zone ID: `<tu-zone-id-de-cloudflare>`
 - Subdominios excluidos del companion: `internal`, `home`
 
 ### 1. Tokens de API
