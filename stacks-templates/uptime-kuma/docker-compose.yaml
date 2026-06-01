@@ -9,7 +9,7 @@ services:
     ports:
       - "3013:3001"
     volumes:
-      - ${STACK_DIR}/data:/app/data
+      - ${APPDATA_DIR}/data:/app/data
     networks:
       - homelab_web
 

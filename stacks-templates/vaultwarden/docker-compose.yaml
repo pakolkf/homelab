@@ -9,7 +9,7 @@ services:
     ports:
       - "8222:80"
     volumes:
-      - ${STACK_DIR}/data:/data
+      - ${APPDATA_DIR}/data:/data
     networks:
       - homelab_web
 

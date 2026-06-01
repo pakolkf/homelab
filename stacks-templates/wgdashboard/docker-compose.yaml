@@ -16,8 +16,8 @@ services:
       - "10086:10086/tcp"
       - "51820:51820/udp"
     volumes:
-      - ${STACK_DIR}/conf:/etc/wireguard
-      - ${STACK_DIR}/data:/data
+      - ${APPDATA_DIR}/conf:/etc/wireguard
+      - ${APPDATA_DIR}/data:/data
     networks:
       - homelab_web
 

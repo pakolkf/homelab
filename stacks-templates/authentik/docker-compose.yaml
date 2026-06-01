@@ -8,7 +8,7 @@ services:
       - /opt/homelab/docker/.env
       - /opt/homelab/docker/authentik/.env
     volumes:
-      - ${STACK_DIR}/database:/var/lib/postgresql/data
+      - ${APPDATA_DIR}/database:/var/lib/postgresql/data
     healthcheck:
       interval: 30s
       retries: 5
@@ -34,8 +34,8 @@ services:
       - 9000:9000
       - 9443:9443
     volumes:
-      - ${STACK_DIR}/data:/data
-      - ${STACK_DIR}/custom-templates:/templates
+      - ${APPDATA_DIR}/data:/data
+      - ${APPDATA_DIR}/custom-templates:/templates
     depends_on:
       authentik-postgresql:
         condition: service_healthy
@@ -55,9 +55,9 @@ services:
       - /opt/homelab/docker/.env
       - /opt/homelab/docker/authentik/.env
     volumes:
-      - ${STACK_DIR}/data:/data
-      - ${STACK_DIR}/certs:/certs
-      - ${STACK_DIR}/custom-templates:/templates
+      - ${APPDATA_DIR}/data:/data
+      - ${APPDATA_DIR}/certs:/certs
+      - ${APPDATA_DIR}/custom-templates:/templates
     depends_on:
       authentik-postgresql:
         condition: service_healthy

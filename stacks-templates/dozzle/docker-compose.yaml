@@ -9,7 +9,7 @@ services:
     ports:
       - "8086:8080"
     volumes:
-      - ${STACK_DIR}/data:/data
+      - ${APPDATA_DIR}/data:/data
     networks:
       - homelab_web
       - homelab_socket

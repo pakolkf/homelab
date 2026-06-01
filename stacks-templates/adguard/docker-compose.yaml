@@ -12,8 +12,8 @@ services:
       - "53:53/udp"
       - "8054:80/tcp"
     volumes:
-      - ${STACK_DIR}/work:/opt/adguardhome/work
-      - ${STACK_DIR}/conf:/opt/adguardhome/conf
+      - ${APPDATA_DIR}/work:/opt/adguardhome/work
+      - ${APPDATA_DIR}/conf:/opt/adguardhome/conf
     networks:
       - homelab_dns
       - homelab_web

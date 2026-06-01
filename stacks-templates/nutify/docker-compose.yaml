@@ -9,8 +9,8 @@ services:
     ports:
       - "5050:5050"
     volumes:
-      - ${STACK_DIR}/data:/app/nutify/data
-      - ${STACK_DIR}/logs:/app/nutify/logs
+      - ${APPDATA_DIR}/data:/app/nutify/data
+      - ${APPDATA_DIR}/logs:/app/nutify/logs
     networks:
       - homelab_web
 

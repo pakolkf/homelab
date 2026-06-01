@@ -9,7 +9,7 @@ services:
     ports:
       - "8091:8090"
     volumes:
-      - ${STACK_DIR}/data:/beszel_data
+      - ${APPDATA_DIR}/data:/beszel_data
     networks:
       - homelab_web
 
@@ -22,7 +22,7 @@ services:
       - /opt/homelab/docker/beszel/.env
     network_mode: host
     volumes:
-      - ${STACK_DIR}/data-agent:/var/lib/beszel-agent
+      - ${APPDATA_DIR}/data-agent:/var/lib/beszel-agent
 
 networks:
   homelab_web:

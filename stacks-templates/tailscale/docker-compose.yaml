@@ -15,5 +15,5 @@ services:
       - /opt/homelab/docker/.env
       - /opt/homelab/docker/tailscale/.env
     volumes:
-      - ${STACK_DIR}/data:/var/lib/tailscale
-      - ${STACK_DIR}/config:/config
+      - ${APPDATA_DIR}/data:/var/lib/tailscale
+      - ${APPDATA_DIR}/config:/config

@@ -10,7 +10,7 @@ services:
     ports:
       - "7575:7575"
     volumes:
-      - ${STACK_DIR}/appdata:/appdata
+      - ${APPDATA_DIR}/appdata:/appdata
     networks:
       - homelab_web
       - homelab_socket

@@ -11,8 +11,8 @@ services:
       - "8088:80"
     volumes:
       - ${HOMELAB_BASE}:/srv
-      - ${STACK_DIR}/database:/database
-      - ${STACK_DIR}/config:/config
+      - ${APPDATA_DIR}/database:/database
+      - ${APPDATA_DIR}/config:/config
     networks:
       - homelab_web
 

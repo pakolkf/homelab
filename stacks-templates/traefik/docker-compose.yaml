@@ -14,10 +14,10 @@ services:
       - 443:443
       - 8080:8080
     volumes:
-      - ${STACK_DIR}/traefik.yaml:/traefik.yaml:ro
-      - ${STACK_DIR}/dynamic:/etc/traefik/dynamic:ro
-      - ${STACK_DIR}/letsencrypt:/letsencrypt
-      - ${STACK_DIR}/logs:/var/log/traefik
+      - ${APPDATA_DIR}/traefik.yaml:/traefik.yaml:ro
+      - ${APPDATA_DIR}/dynamic:/etc/traefik/dynamic:ro
+      - ${APPDATA_DIR}/letsencrypt:/letsencrypt
+      - ${APPDATA_DIR}/logs:/var/log/traefik
     networks:
       - homelab_web
       - homelab_socket
