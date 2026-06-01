@@ -1,0 +1,21 @@
+services:
+  hawser:
+    image: ghcr.io/finsys/hawser:latest
+    container_name: hawser
+    hostname: hawser
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - /opt/homelab/docker/hawser/.env
+    volumes:
+      # Agente de escritura de dockhand: el socket va rw (despliega stacks).
+      - /var/run/docker.sock:/var/run/docker.sock
+      # El dir de recetas se monta en la MISMA ruta que STACKS_DIR para que
+      # los bind-mounts relativos resuelvan igual dentro y fuera del contenedor.
+      - ${STACKS_BASE}:${STACKS_BASE}
+    networks:
+      - homelab_socket
+
+networks:
+  homelab_socket:
+    external: true
