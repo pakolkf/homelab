@@ -16,6 +16,7 @@ cd "$SCRIPT_DIR"
 ./fix_unmask.sh
 ./create_estructure.sh
 ./fix_overcommit.sh
+./sync_appdata.sh
 ./fix_permissions.sh
 ./install_docker.sh
 ./create_docker_network.sh
