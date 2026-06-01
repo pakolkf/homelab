@@ -4,11 +4,13 @@
 # El docker/.env raíz SÍ se versiona (sólo defaults no sensibles).
 # Los .env por stack NO se versionan, salvo excepciones explícitas.
 docker/*/.env
+stacks-templates/*/.env
 docker/**/.env.local
+stacks-templates/**/.env.local
 *.env.local
 
 # Excepción: el .env de socket-proxy no contiene secretos.
-!docker/socket-proxy/.env
+!stacks-templates/socket-proxy/.env
 
 # =========================================================
 # Runtime / datos persistentes de los stacks
@@ -26,22 +28,31 @@ docker/*/log/
 docker/*/database/
 docker/*/backups/
 docker/*/work/
+stacks-templates/*/appdata/
+stacks-templates/*/data/
+stacks-templates/*/config/
+stacks-templates/*/conf/
+stacks-templates/*/logs/
+stacks-templates/*/log/
+stacks-templates/*/database/
+stacks-templates/*/backups/
+stacks-templates/*/work/
 
 # Específicos
-docker/traefik/letsencrypt/
-docker/traefik/logs/
-docker/cloudflare/credentials/
-docker/tailscale/data/
-docker/tailscale/config/
-docker/wgdashboard/conf/
-docker/duplicati/backups/
+stacks-templates/traefik/letsencrypt/
+stacks-templates/traefik/logs/
+stacks-templates/cloudflare/credentials/
+stacks-templates/tailscale/data/
+stacks-templates/tailscale/config/
+stacks-templates/wgdashboard/conf/
+stacks-templates/duplicati/backups/
 
 # Unbound: las raíces se refrescan mensualmente por cron.
-docker/unbound/root.hints
-docker/unbound/root.key
+stacks-templates/unbound/root.hints
+stacks-templates/unbound/root.key
 
 # Traefik: NO ignorar `dynamic/` — es configuración versionada.
-!docker/traefik/dynamic/
+!stacks-templates/traefik/dynamic/
 
 # =========================================================
 # Material criptográfico y claves
@@ -57,7 +68,7 @@ id_ed25519.pub
 acme*.json
 
 # Excepciones: claves de configuración pública que sí se versionan
-!docker/unbound/unbound.conf
+!stacks-templates/unbound/unbound.conf
 
 # =========================================================
 # Editor / SO
