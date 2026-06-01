@@ -63,7 +63,7 @@ Docker y Docker Compose **no** son requisitos previos: los instala `scripts/inst
     ├── disable_dns.sh           Desactiva stub de systemd-resolved
     ├── fix_unmask.sh            umask 027 para el usuario
     ├── create_estructure.sh     Crea /opt/homelab y .env global
-    ├── fix_homarr.sh            Ajustes específicos de Homarr (sysctl)
+    ├── fix_overcommit.sh        sysctl vm.overcommit_memory (Redis de Homarr)
     ├── fix_permissions.sh       Refuerza propietario y modos
     ├── install_docker.sh        Instala Docker Engine + Compose plugin
     └── create_docker_network.sh Crea las 3 redes externas del homelab

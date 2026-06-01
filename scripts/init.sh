@@ -15,7 +15,7 @@ cd "$SCRIPT_DIR"
 ./disable_dns.sh
 ./fix_unmask.sh
 ./create_estructure.sh
-./fix_homarr.sh
+./fix_overcommit.sh
 ./fix_permissions.sh
 ./install_docker.sh
 ./create_docker_network.sh
