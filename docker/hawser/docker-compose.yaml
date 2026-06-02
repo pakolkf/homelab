@@ -10,7 +10,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /opt/homelab/stacks:/opt/homelab/stacks
-      - /opt/homelab/docker:/opt/homelab/docker:ro
+      - /opt/homelab/docker/.env:/opt/homelab/docker/.env:ro
     networks:
       - homelab_socket
 
