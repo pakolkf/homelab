@@ -17,8 +17,10 @@ fi
 
 readonly DEST="/opt/homelab/appdata/unbound"
 readonly IMG_UNBOUND="klutchell/unbound:latest"
-PUID="${SUDO_UID:-$(id -u)}"
-PGID="${SUDO_GID:-$(id -g)}"
+# El contenedor unbound corre como uid 101/gid 102 (UNBOUND_UID/GID de klutchell)
+# y ESCRIBE root.key (auto-trust-anchor-file/RFC5011) -> debe ser su dueño.
+readonly UNBOUND_UID=101
+readonly UNBOUND_GID=102
 
 mkdir -p "${DEST}"
 
@@ -35,7 +37,7 @@ echo "Generando root.key (ancla DNSSEC) con unbound-anchor..."
 docker run --rm --user root --entrypoint unbound-anchor \
     -v "${DEST}:/anchor" "${IMG_UNBOUND}" -a /anchor/root.key || true
 
-chown "${PUID}:${PGID}" "${DEST}/root.hints" "${DEST}/root.key"
+chown "${UNBOUND_UID}:${UNBOUND_GID}" "${DEST}/root.hints" "${DEST}/root.key"
 chmod 644 "${DEST}/root.hints" "${DEST}/root.key"
 
 echo "Raíces de unbound listas en ${DEST}."

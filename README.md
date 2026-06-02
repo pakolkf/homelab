@@ -265,10 +265,11 @@ clientes → AdGuard (53, filtrado) → Unbound (5335, recursivo + DNSSEC) → r
 
 ### Raíces de Unbound (`root.hints` / `root.key`)
 
-Unbound usa dos ficheros que **gestionamos nosotros** (no los de la imagen): se descargan **directamente** a `/opt/homelab/appdata/unbound/` y se montan en `/etc/unbound/`.
+Unbound usa dos ficheros que **gestionamos nosotros** (no los baked de la imagen): se descargan a `/opt/homelab/appdata/unbound/` y se **bind-montan SOBRE** los que la base de klutchell ya referencia — `/var/unbound/root.hints` y `/var/unbound/root.key` (la conf de la base los declara con rutas relativas; **no** repetimos `root-hints`/`trust-anchor-file` en nuestra `unbound.conf`, eso daría *"presented twice"*). Así persisten entre recreates del stack **sin rebuild** de la imagen.
 
-- **El bootstrap los baja solo:** `scripts/fetch_unbound_roots.sh` (lo lanza `init.sh` tras instalar Docker) descarga `root.hints` y genera `root.key` en `/opt/homelab/appdata/unbound/`. Idempotente (si ya existen, no toca nada).
-- **El cron mensual** `update_unbound_roots.sh` los mantiene al día a partir de ahí.
+- **Propiedad `101:102`** (uid/gid del usuario `unbound` de klutchell): `root.key` es `auto-trust-anchor-file`, la **escribe el propio unbound** (RFC5011), así que debe poder hacerlo. `fix_permissions.sh` deja `appdata/unbound/` como `101:102`, dir `755`, ficheros `644`.
+- **El bootstrap los baja solo:** `scripts/fetch_unbound_roots.sh` (lo lanza `init.sh` tras instalar Docker) descarga `root.hints` y genera `root.key`. Idempotente (si ya existen, no toca nada).
+- **El cron mensual** `update_unbound_roots.sh` los refresca y reinicia el contenedor.
 
 Para (re)generarlos a mano:
 
@@ -281,7 +282,7 @@ curl -fsSL https://www.internic.net/domain/named.root \
 docker run --rm --user root --entrypoint unbound-anchor \
   -v /opt/homelab/appdata/unbound:/anchor klutchell/unbound:latest -a /anchor/root.key
 ```
-> `unbound-anchor` devuelve `1` cuando **actualiza** el ancla — es normal, no es error. Deja los ficheros en `644` (`fix_permissions.sh` ya lo hace).
+> `unbound-anchor` devuelve `1` cuando **actualiza** el ancla — es normal, no es error. Tras (re)generarlos a mano: `sudo chown 101:102 /opt/homelab/appdata/unbound/root.{hints,key}` (o relanza `fix_permissions.sh`), si no unbound no podrá escribir `root.key`.
 
 ### Socket de Docker: socket-proxy-ro + hawser
 

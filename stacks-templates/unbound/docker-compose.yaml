@@ -8,10 +8,17 @@ services:
       - /opt/homelab/docker/.env
       - .env
     volumes:
-      # Solo la config custom. klutchell ya gestiona root.hints y el ancla DNSSEC
-      # (auto-trust-anchor-file/RFC5011) en su base; montar/definir las nuestras
-      # choca ("trust anchor presented twice") y unbound no arranca.
+      # Config custom (la base la incluye vía include-toplevel custom.conf.d/*.conf).
       - ${APPDATA_DIR}/unbound.conf:/etc/unbound/custom.conf.d/unbound.conf:ro
+      # Raíces gestionadas por NOSOTROS: SOBRESCRIBIMOS los ficheros que la base de
+      # klutchell ya referencia (rutas relativas root.hints/root.key -> resuelven en
+      # /var/unbound). NO declaramos root-hints/trust-anchor-file en la conf: la base
+      # ya lo hace; duplicarlo da "presented twice"/"second hints ignored". Así
+      # persisten entre recreates del stack (sin rebuild) y el cron mensual las
+      # refresca. root.key la ESCRIBE unbound (auto-trust-anchor-file/RFC5011) ->
+      # debe pertenecer a 101:102 (lo hace fix_permissions); por eso va sin :ro.
+      - ${APPDATA_DIR}/root.hints:/var/unbound/root.hints:ro
+      - ${APPDATA_DIR}/root.key:/var/unbound/root.key
     networks:
       - homelab_dns
 

@@ -73,14 +73,21 @@ find "${HOMELAB_DIR}" -xdev \
     \) \
     -exec chmod 600 {} \; 2>/dev/null || true
 
-# Unbound (imagen klutchell) corre como 'nobody': su config y raíces son
-# PÚBLICAS y deben ser legibles por el contenedor. Va al FINAL para revertir el
-# 600 que el bloque *.key acaba de poner a root.key.
-echo "→ Unbound (klutchell): config/raíces legibles (dir 755, ficheros 644)..."
-find "${HOMELAB_DIR}" -xdev -type d -path "*/appdata/unbound" \
-    -exec chmod 755 {} \; 2>/dev/null || true
-find "${HOMELAB_DIR}" -xdev -type f -path "*/appdata/unbound/*" \
-    -exec chmod 644 {} \; 2>/dev/null || true
+# Unbound (imagen klutchell): el proceso corre como uid 101 / gid 102 (usuario
+# 'unbound', UNBOUND_UID/UNBOUND_GID del Dockerfile). Va al FINAL para revertir el
+# chown 1000 y el chmod 600 (bloque *.key) que se aplicaron antes.
+# - unbound.conf y root.hints solo se LEEN -> 644 basta.
+# - root.key la ESCRIBE unbound (auto-trust-anchor-file/RFC5011) -> debe pertenecer
+#   a 101:102 y ser escribible por el dueño (644 => owner rw). De ahí el chown.
+readonly UNBOUND_UID=101
+readonly UNBOUND_GID=102
+if [[ -d "${HOMELAB_DIR}/appdata/unbound" ]]; then
+    echo "→ Unbound (klutchell): dueño ${UNBOUND_UID}:${UNBOUND_GID}, dir 755, ficheros 644..."
+    chown -R "${UNBOUND_UID}:${UNBOUND_GID}" "${HOMELAB_DIR}/appdata/unbound" 2>/dev/null || true
+    chmod 755 "${HOMELAB_DIR}/appdata/unbound" 2>/dev/null || true
+    find "${HOMELAB_DIR}/appdata/unbound" -xdev -type f \
+        -exec chmod 644 {} \; 2>/dev/null || true
+fi
 
 echo
 echo "========================================="
