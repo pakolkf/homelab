@@ -8,9 +8,9 @@ services:
       - /opt/homelab/docker/.env
       - .env
     volumes:
-      - ${APPDATA_DIR}/unbound.conf:/etc/unbound/unbound.conf:ro
-      - ${APPDATA_DIR}/root.hints:/etc/unbound/root.hints:ro
-      - ${APPDATA_DIR}/root.key:/etc/unbound/root.key:ro
+      # Config custom en el include dir de klutchell (su base la incluye y ya
+      # gestiona root.hints/root.key/DNSSEC). NO sobrescribir unbound.conf.
+      - ${APPDATA_DIR}/unbound.conf:/etc/unbound/custom.conf.d/unbound.conf:ro
     networks:
       - homelab_dns
     healthcheck:
