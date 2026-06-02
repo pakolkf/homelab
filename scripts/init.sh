@@ -20,3 +20,4 @@ cd "$SCRIPT_DIR"
 ./fix_permissions.sh
 ./install_docker.sh
 ./create_docker_network.sh
+./fetch_unbound_roots.sh

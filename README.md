@@ -111,7 +111,8 @@ volumes:
     ├── sync_appdata.sh          Copia la config versionada a /opt/homelab/appdata
     ├── fix_permissions.sh       Refuerza propietario y modos
     ├── install_docker.sh        Instala Docker Engine + Compose plugin
-    └── create_docker_network.sh Crea las 3 redes externas del homelab
+    ├── create_docker_network.sh Crea las 3 redes externas del homelab
+    └── fetch_unbound_roots.sh   Baja root.hints + root.key a appdata/unbound
 ```
 
 En tiempo de ejecución, el host además tiene `/opt/homelab/stacks/` (runtime que ejecuta hawser en este host) y `/opt/homelab/appdata/` (config + datos), que **no** están en el repo. Las copias centrales de las recetas (todos los environments) viven en `/opt/homelab/appdata/dockhand/stacks/`.
@@ -264,24 +265,23 @@ clientes → AdGuard (53, filtrado) → Unbound (5335, recursivo + DNSSEC) → r
 
 ### Raíces de Unbound (`root.hints` / `root.key`)
 
-Unbound usa dos ficheros que **gestionamos nosotros** (se montan en `/etc/unbound/` y el cron mensual los refresca):
+Unbound usa dos ficheros que **gestionamos nosotros** (no los de la imagen): se descargan **directamente** a `/opt/homelab/appdata/unbound/` y se montan en `/etc/unbound/`.
 
-- **`root.hints`** — IPs de los servidores raíz:
-  ```bash
-  curl -fsSL https://www.internic.net/domain/named.root -o root.hints
-  ```
-- **`root.key`** — ancla de confianza DNSSEC. Se genera con `unbound-anchor` (vía la propia imagen, sin instalar nada en el host):
-  ```bash
-  docker run --rm --user root --entrypoint unbound-anchor \
-    -v "$PWD:/anchor" klutchell/unbound:latest -a /anchor/root.key
-  ```
-  > `unbound-anchor` devuelve `1` cuando **actualiza** el ancla — es normal, no es error.
+- **El bootstrap los baja solo:** `scripts/fetch_unbound_roots.sh` (lo lanza `init.sh` tras instalar Docker) descarga `root.hints` y genera `root.key` en `/opt/homelab/appdata/unbound/`. Idempotente (si ya existen, no toca nada).
+- **El cron mensual** `update_unbound_roots.sh` los mantiene al día a partir de ahí.
 
-Dónde dejarlos:
-- En `stacks-templates/unbound/` del repo → `sync_appdata.sh` los copia a `/opt/homelab/appdata/unbound/`, **o**
-- Directamente en `/opt/homelab/appdata/unbound/` del host.
+Para (re)generarlos a mano:
 
-Asegúrate de que queden legibles (`644`) — `fix_permissions.sh` ya los deja así. A partir de ahí, `update_unbound_roots.sh` (cron mensual) los mantiene al día.
+```bash
+# root.hints — servidores raíz
+curl -fsSL https://www.internic.net/domain/named.root \
+  -o /opt/homelab/appdata/unbound/root.hints
+
+# root.key — ancla DNSSEC (vía la imagen, sin instalar nada en el host)
+docker run --rm --user root --entrypoint unbound-anchor \
+  -v /opt/homelab/appdata/unbound:/anchor klutchell/unbound:latest -a /anchor/root.key
+```
+> `unbound-anchor` devuelve `1` cuando **actualiza** el ancla — es normal, no es error. Deja los ficheros en `644` (`fix_permissions.sh` ya lo hace).
 
 ### Socket de Docker: socket-proxy-ro + hawser
 
