@@ -69,6 +69,7 @@ volumes:
 - `/opt/homelab/docker/.env` es **local a cada host** (mismo path, contenido propio): `create_estructure.sh` autodetecta `PUID/PGID` del usuario real (`${SUDO_UID:-$(id -u)}`). `hawser` lo monta en `:ro` y, como ejecuta el compose en el host destino, cada host inyecta sus propios uids — clave para hosts remotos con uid distinto.
 - `APPDATA_DIR` es **una sola variable por stack** (ruta absoluta). Mover los datos de un servicio = cambiar esa línea en el `.env` del stack.
 - Las rutas de volúmenes son **absolutas** porque `hawser` ejecuta en el host destino (las relativas no valen en hosts remotos).
+- Cada stack incluye un **`.env.example`** versionado (sin secretos) con sus variables; al crearlo en dockhand, cópialo a su `.env` y rellena (`APPDATA_DIR` + secretos). Evita la deriva de variables.
 
 ---
 
