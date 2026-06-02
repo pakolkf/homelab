@@ -262,6 +262,27 @@ clientes → AdGuard (53, filtrado) → Unbound (5335, recursivo + DNSSEC) → r
 
 `scripts/disable_dns.sh` libera el puerto 53 desactivando el stub listener de `systemd-resolved`. Un cron mensual (`scripts/update_unbound_roots.sh`) refresca `root.hints` y `root.key` de Unbound (en `appdata/unbound/`) y reinicia el contenedor.
 
+### Raíces de Unbound (`root.hints` / `root.key`)
+
+Unbound usa dos ficheros que **gestionamos nosotros** (se montan en `/etc/unbound/` y el cron mensual los refresca):
+
+- **`root.hints`** — IPs de los servidores raíz:
+  ```bash
+  curl -fsSL https://www.internic.net/domain/named.root -o root.hints
+  ```
+- **`root.key`** — ancla de confianza DNSSEC. Se genera con `unbound-anchor` (vía la propia imagen, sin instalar nada en el host):
+  ```bash
+  docker run --rm --user root --entrypoint unbound-anchor \
+    -v "$PWD:/anchor" klutchell/unbound:latest -a /anchor/root.key
+  ```
+  > `unbound-anchor` devuelve `1` cuando **actualiza** el ancla — es normal, no es error.
+
+Dónde dejarlos:
+- En `stacks-templates/unbound/` del repo → `sync_appdata.sh` los copia a `/opt/homelab/appdata/unbound/`, **o**
+- Directamente en `/opt/homelab/appdata/unbound/` del host.
+
+Asegúrate de que queden legibles (`644`) — `fix_permissions.sh` ya los deja así. A partir de ahí, `update_unbound_roots.sh` (cron mensual) los mantiene al día.
+
 ### Socket de Docker: socket-proxy-ro + hawser
 
 Ningún servicio expuesto monta `/var/run/docker.sock` directamente.
