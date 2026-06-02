@@ -10,7 +10,7 @@ services:
     ports:
       - "8088:80"
     volumes:
-      - ${HOMELAB_BASE}:/srv
+      - /opt/homelab:/srv
       - ${APPDATA_DIR}/database:/database
       - ${APPDATA_DIR}/config:/config
     networks:

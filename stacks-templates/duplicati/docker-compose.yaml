@@ -11,7 +11,7 @@ services:
     volumes:
       - ${APPDATA_DIR}/config:/config
       - ${APPDATA_DIR}/backups:/backups
-      - ${HOMELAB_BASE}:/source:ro
+      - /opt/homelab:/source:ro
     networks:
       - homelab_web
 
