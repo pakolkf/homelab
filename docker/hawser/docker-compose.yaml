@@ -10,9 +10,10 @@ services:
     volumes:
       # Agente de escritura de dockhand: el socket va rw (despliega stacks).
       - /var/run/docker.sock:/var/run/docker.sock
-      # El dir de recetas se monta en la MISMA ruta que STACKS_DIR para que
-      # los bind-mounts relativos resuelvan igual dentro y fuera del contenedor.
-      - ${STACKS_BASE}:${STACKS_BASE}
+      # El dir de recetas en la MISMA ruta dentro y fuera del contenedor (para
+      # que los bind-mounts de los stacks resuelvan igual). Ruta fija: el .env
+      # global NO se interpola en el compose (env_file solo inyecta al contenedor).
+      - /opt/homelab/stacks:/opt/homelab/stacks
       # .env global del host (PUID/PGID/TZ). Es LOCAL a cada host: mismo path,
       # contenido propio (autodetectado por create_estructure.sh). hawser ejecuta
       # el compose en su host, así que los stacks que hagan env_file de esta ruta

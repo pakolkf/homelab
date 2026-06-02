@@ -14,8 +14,9 @@ services:
       - ${STACK_DIR}/data:/app/data
       # Recetas que crea dockhand. Respeta su estructura impuesta
       # {DATA_DIR}/stacks/{env}/{stack} → en el host /opt/homelab/stacks/{env}/{stack}.
-      # Es el MISMO dir que el STACKS_DIR de hawser (escribe aquí, hawser ejecuta).
-      - ${STACKS_BASE}:/app/data/stacks
+      # Mismo dir que el de hawser (dockhand escribe, hawser ejecuta).
+      # Ruta fija: el .env global no se interpola en el compose.
+      - /opt/homelab/stacks:/app/data/stacks
     networks:
       - homelab_web
       - homelab_socket
