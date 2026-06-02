@@ -265,7 +265,7 @@ clientes → AdGuard (53, filtrado) → Unbound (5335, recursivo + DNSSEC) → r
 
 ### Raíces de Unbound (`root.hints` / `root.key`)
 
-Unbound usa dos ficheros que **gestionamos nosotros** (no los baked de la imagen): se descargan a `/opt/homelab/appdata/unbound/` y se **bind-montan SOBRE** los que la base de klutchell ya referencia — `/var/unbound/root.hints` y `/var/unbound/root.key` (la conf de la base los declara con rutas relativas; **no** repetimos `root-hints`/`trust-anchor-file` en nuestra `unbound.conf`, eso daría *"presented twice"*). Así persisten entre recreates del stack **sin rebuild** de la imagen.
+Unbound usa dos ficheros que **gestionamos nosotros** (no los baked de la imagen): viven en `/opt/homelab/appdata/unbound/` y montamos ese **directorio entero** sobre **`/var/unbound`** (el home de unbound, donde la base de klutchell resuelve `root.hints`/`root.key` con rutas relativas). **No** repetimos `root-hints`/`trust-anchor-file` en nuestra `unbound.conf` (la base ya los declara → daría *"presented twice"*). Montamos el **dir** y no los ficheros sueltos porque unbound actualiza el ancla con `rename(tmp → root.key)`, y sobre un bind-mount de fichero eso da *"rename: Resource busy"*. Así persisten entre recreates del stack **sin rebuild** de la imagen.
 
 - **Propiedad `101:102`** (uid/gid del usuario `unbound` de klutchell): `root.key` es `auto-trust-anchor-file`, la **escribe el propio unbound** (RFC5011), así que debe poder hacerlo. `fix_permissions.sh` deja `appdata/unbound/` como `101:102`, dir `755`, ficheros `644`.
 - **El bootstrap los baja solo:** `scripts/fetch_unbound_roots.sh` (lo lanza `init.sh` tras instalar Docker) descarga `root.hints` y genera `root.key`. Idempotente (si ya existen, no toca nada).
