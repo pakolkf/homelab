@@ -14,11 +14,10 @@ services:
     networks:
       - homelab_dns
     healthcheck:
-      test: ["CMD-SHELL", "drill @127.0.0.1 -p 5335 iana.org > /dev/null || exit 1"]
-      interval: 60s
-      timeout: 10s
-      start_period: 30s
-      retries: 3
+      # klutchell/unbound es FROM scratch: no hay /bin/sh ni 'drill'. Cualquier
+      # healthcheck con shell/binario externo falla ("exec /bin/sh: not found").
+      # Lo deshabilitamos (NONE).
+      test: ["NONE"]
 
 networks:
   homelab_dns:
