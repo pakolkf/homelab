@@ -88,3 +88,6 @@ Thumbs.db
 *.tmp
 *.orig
 *.log
+
+# Notas internas para Claude Code (local, no versionado)
+CLAUDE.md
