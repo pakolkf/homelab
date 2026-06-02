@@ -297,7 +297,7 @@ Gestionados por dockhand:
 | traefik | `traefik:latest` | 80, 443, 8080 | Reverse proxy + TLS automático |
 | error-pages | `tarampampam/error-pages` | 8090 | Páginas de error personalizadas |
 | socket-proxy | `lscr.io/linuxserver/socket-proxy` | — (interno 2375, read-only) | Acceso de solo lectura al socket Docker |
-| unbound | `mvance/unbound` | — (interno 5335) | DNS recursivo con DNSSEC |
+| unbound | `klutchell/unbound` | — (interno 5335) | DNS recursivo con DNSSEC |
 | adguard | `adguard/adguardhome` | 53, 8054 | DNS con filtrado de anuncios |
 | homarr | `ghcr.io/homarr-labs/homarr` | 7575 | Dashboard del homelab |
 | dozzle | `amir20/dozzle` | 8086 | Logs en vivo de contenedores |

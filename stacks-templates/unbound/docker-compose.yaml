@@ -1,6 +1,6 @@
 services:
   unbound:
-    image: ${UNBOUND_IMAGE:-mvance/unbound:latest}
+    image: klutchell/unbound:latest
     container_name: unbound
     hostname: unbound
     restart: unless-stopped

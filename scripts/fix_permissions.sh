@@ -73,6 +73,15 @@ find "${HOMELAB_DIR}" -xdev \
     \) \
     -exec chmod 600 {} \; 2>/dev/null || true
 
+# Unbound (imagen klutchell) corre como 'nobody': su config y raíces son
+# PÚBLICAS y deben ser legibles por el contenedor. Va al FINAL para revertir el
+# 600 que el bloque *.key acaba de poner a root.key.
+echo "→ Unbound (klutchell): config/raíces legibles (dir 755, ficheros 644)..."
+find "${HOMELAB_DIR}" -xdev -type d -path "*/appdata/unbound" \
+    -exec chmod 755 {} \; 2>/dev/null || true
+find "${HOMELAB_DIR}" -xdev -type f -path "*/appdata/unbound/*" \
+    -exec chmod 644 {} \; 2>/dev/null || true
+
 echo
 echo "========================================="
 echo " CONFIGURACIÓN FINALIZADA"
