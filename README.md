@@ -13,6 +13,7 @@ La gestión es **dockhand-first**: por terminal solo se instalan `hawser` y `doc
 - [Estructura del repositorio](#estructura-del-repositorio)
 - [Instalación rápida](#instalación-rápida)
 - [Añadir un host adicional (solo hawser)](#añadir-un-host-adicional-solo-hawser)
+- [Red entre hosts (apps en hosts remotos)](#red-entre-hosts-apps-en-hosts-remotos)
 - [Arquitectura](#arquitectura)
 - [Servicios incluidos](#servicios-incluidos)
 - [Authentik — SSO y autenticación centralizada](#authentik--sso-y-autenticación-centralizada)
@@ -204,6 +205,39 @@ Para sumar otro host (p.ej. `pve01`, `raspi01`) que ejecute stacks gestionados d
    - Token: el `TOKEN` de `hawser/.env` de este host.
 
 5. Crea/despliega stacks en ese environment desde la UI. El **runtime** irá a `/opt/homelab/stacks/<stack>/` **en este host**; la **copia central** queda en el dockhand principal (`…/dockhand/data/stacks/{env}/{stack}/`).
+
+---
+
+## Red entre hosts (apps en hosts remotos)
+
+Las redes Docker (`homelab_web`, etc.) son **locales a cada host**: un contenedor en `pve01` **no** está en la `homelab_web` del host principal. Por eso el traefik central solo puede enrutar por nombre de contenedor (`http://servicio:puerto`) a servicios **del mismo host**. Para apps en otros hosts hay que alcanzarlas por **IP del host remoto + puerto publicado**, y lo más limpio es vía **Tailscale** (malla cifrada, IPs estables).
+
+1. En el host remoto, el stack de la app **publica su puerto** (p.ej. `ports: ["8222:80"]`). Como `tailscale` corre en `network_mode: host`, ese puerto queda accesible por la **IP Tailscale** del host.
+2. En el **traefik central**, el router dinámico de ese servicio apunta a la IP del host remoto en vez de al nombre de contenedor:
+
+   ```yaml
+   http:
+     routers:
+       vaultwarden:
+         rule: "Host(`vault.${FQDN}`)"
+         entryPoints: [websecure]
+         service: vaultwarden
+         middlewares: [secure-headers, error-pages]
+         tls: { certResolver: cloudflare }
+     services:
+       vaultwarden:
+         loadBalancer:
+           servers:
+             - url: "http://<tailscale-ip-de-pve01>:8222"
+   ```
+
+3. Camino externo completo: **Cloudflare → túnel → traefik central → (Tailscale) → app en el host remoto**.
+
+Notas:
+- Apps en el **mismo host** que traefik siguen usando el nombre de contenedor (`http://servicio:puerto`) por `homelab_web` — no necesitan publicar puerto.
+- Docker no hace red multi-host sin Swarm/overlay; por eso el patrón es IP+puerto (Tailscale o LAN). Tailscale da IPs estables y cifrado; la LAN vale si todos los hosts están en la misma red.
+- Para no exponer el puerto en toda la LAN, puedes bindearlo a la interfaz Tailscale (`ports: ["<tailscale-ip>:8222:80"]`) o restringir por firewall.
+- Alternativa (más compleja): que cada host tenga su propio traefik expuesto por su propio túnel Cloudflare.
 
 ---
 
