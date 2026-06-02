@@ -12,6 +12,7 @@ La gestión es **dockhand-first**: por terminal solo se instalan `hawser` y `doc
 - [Modelo de despliegue (dockhand-first)](#modelo-de-despliegue-dockhand-first)
 - [Estructura del repositorio](#estructura-del-repositorio)
 - [Instalación rápida](#instalación-rápida)
+- [Añadir un host adicional (solo hawser)](#añadir-un-host-adicional-solo-hawser)
 - [Arquitectura](#arquitectura)
 - [Servicios incluidos](#servicios-incluidos)
 - [Authentik — SSO y autenticación centralizada](#authentik--sso-y-autenticación-centralizada)
@@ -156,6 +157,53 @@ En tiempo de ejecución, el host además tiene `/opt/homelab/stacks/` (runtime q
    - Orden recomendado: `socket-proxy` → `unbound` → `adguard` → `traefik` (+ `error-pages`) → resto.
 
    > Cada host nuevo que añadas necesita su `/opt/homelab/docker/.env` (lo genera `init.sh`/`create_estructure.sh` con sus propios uids) y `hawser` instalado allí.
+
+---
+
+## Añadir un host adicional (solo hawser)
+
+Para sumar otro host (p.ej. `pve01`, `raspi01`) que ejecute stacks gestionados desde el dockhand central, ese host corre **solo el agente `hawser`** (no dockhand). dockhand lo controla por red.
+
+1. **Red del host:** edita `scripts/set_ip.sh` a tu LAN si vas a fijar IP en este host (igual que en el principal).
+
+2. **Bootstrap reducido** (sin las partes de DNS/IPv6 del host DNS principal). Clona el repo y ejecuta solo lo necesario:
+
+   ```bash
+   sudo ./scripts/install_docker.sh         # Docker + Compose
+   sudo ./scripts/create_docker_network.sh  # redes homelab_web/socket/dns
+   sudo ./scripts/create_estructure.sh      # /opt/homelab/{docker,stacks,appdata} + .env del host (PUID/PGID autodetectados)
+   sudo ./scripts/sync_appdata.sh           # solo si aquí corren stacks con config versionada (traefik/unbound/adguard)
+   sudo ./scripts/fix_permissions.sh
+   ```
+   > `init.sh` completo además fija IP estática, desactiva IPv6/DNS y mete el cron de unbound — eso es del host DNS principal. En un host solo-apps ejecútalo solo si te aplica. Si aquí corren traefik/dns, edita `docker/.env` (`FQDN`/`ACME_EMAIL`) antes de `sync_appdata.sh`.
+
+3. **Instala hawser (no dockhand).** A diferencia del host principal (donde dockhand lo alcanza por la red interna), aquí hawser debe **publicar su puerto** para que el dockhand central llegue por IP:
+
+   ```bash
+   sudo rsync -a --exclude '.env' /ruta/a/tu/clon/docker/hawser /opt/homelab/docker/
+   ```
+   Crea `/opt/homelab/docker/hawser/.env` (600, root):
+   ```ini
+   PORT=2376
+   STACKS_DIR=/opt/homelab/stacks
+   TOKEN=<token-de-este-host>
+   ```
+   En `/opt/homelab/docker/hawser/docker-compose.yaml`, **publica el puerto** (añade bajo el servicio `hawser`):
+   ```yaml
+       ports:
+         - "2376:2376"
+   ```
+   ```bash
+   cd /opt/homelab/docker/hawser && docker compose up -d
+   ```
+   > Expón `2376` solo en red de confianza (LAN o **Tailscale**); la autenticación es el `TOKEN`.
+
+4. **Registra el environment en el dockhand central:**
+   - **Settings → Environments → Add → Hawser**
+   - URL: `http://<IP-de-este-host>:2376` (IP LAN o Tailscale)
+   - Token: el `TOKEN` de `hawser/.env` de este host.
+
+5. Crea/despliega stacks en ese environment desde la UI. El **runtime** irá a `/opt/homelab/stacks/<stack>/` **en este host**; la **copia central** queda en el dockhand principal (`…/dockhand/data/stacks/{env}/{stack}/`).
 
 ---
 

@@ -8,16 +8,8 @@ services:
       - /opt/homelab/docker/.env
       - /opt/homelab/docker/hawser/.env
     volumes:
-      # Agente de escritura de dockhand: el socket va rw (despliega stacks).
       - /var/run/docker.sock:/var/run/docker.sock
-      # El dir de recetas en la MISMA ruta dentro y fuera del contenedor (para
-      # que los bind-mounts de los stacks resuelvan igual). Ruta fija: el .env
-      # global NO se interpola en el compose (env_file solo inyecta al contenedor).
       - /opt/homelab/stacks:/opt/homelab/stacks
-      # .env global del host (PUID/PGID/TZ). Es LOCAL a cada host: mismo path,
-      # contenido propio (autodetectado por create_estructure.sh). hawser ejecuta
-      # el compose en su host, así que los stacks que hagan env_file de esta ruta
-      # resuelven los uids correctos de CADA host (clave para hosts remotos).
       - /opt/homelab/docker/.env:/opt/homelab/docker/.env:ro
     networks:
       - homelab_socket

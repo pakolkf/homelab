@@ -10,10 +10,6 @@ services:
     ports:
       - "8085:3000"
     volumes:
-      # Estado interno de dockhand: db, .encryption_key, git-repos/ y la copia
-      # CENTRAL de los stacks ({env}/{stack}). El runtime lo ejecuta hawser desde
-      # su STACKS_DIR (/opt/homelab/stacks); ese dir NO se monta aquí (si se
-      # montara, colisionaría con la copia plana de hawser en el mismo path).
       - ${STACK_DIR}/data:/app/data
     networks:
       - homelab_web
