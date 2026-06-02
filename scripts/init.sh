@@ -10,7 +10,7 @@ cd "$SCRIPT_DIR"
 
 ./auto_update.sh
 ./set_ip.sh static
-./update_unbound_roots.sh
+./update_unbound_stack.sh
 ./disable_ipv6.sh
 ./disable_dns.sh
 ./fix_unmask.sh
@@ -20,4 +20,3 @@ cd "$SCRIPT_DIR"
 ./fix_permissions.sh
 ./install_docker.sh
 ./create_docker_network.sh
-./fetch_unbound_roots.sh

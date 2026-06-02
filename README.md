@@ -102,7 +102,7 @@ volumes:
     ├── init.sh                  Orquestador (lanza todo lo demás en orden)
     ├── auto_update.sh           Cron diario apt-get upgrade
     ├── set_ip.sh                IP estática del host (netplan)
-    ├── update_unbound_roots.sh  Cron mensual root.hints + root.key
+    ├── update_unbound_stack.sh  Cron periódico: pull de imagen + recreate de unbound (refresca raíces)
     ├── disable_ipv6.sh          Desactiva IPv6 (sysctl)
     ├── disable_dns.sh           Libera el puerto 53 (stub de systemd-resolved)
     ├── fix_unmask.sh            umask 027 para el usuario
@@ -111,8 +111,7 @@ volumes:
     ├── sync_appdata.sh          Copia la config versionada a /opt/homelab/appdata
     ├── fix_permissions.sh       Refuerza propietario y modos
     ├── install_docker.sh        Instala Docker Engine + Compose plugin
-    ├── create_docker_network.sh Crea las 3 redes externas del homelab
-    └── fetch_unbound_roots.sh   Baja root.hints + root.key a appdata/unbound
+    └── create_docker_network.sh Crea las 3 redes externas del homelab
 ```
 
 En tiempo de ejecución, el host además tiene `/opt/homelab/stacks/` (runtime que ejecuta hawser en este host) y `/opt/homelab/appdata/` (config + datos), que **no** están en el repo. Las copias centrales de las recetas (todos los environments) viven en `/opt/homelab/appdata/dockhand/stacks/`.
@@ -261,28 +260,23 @@ Todas se crean en `scripts/create_docker_network.sh` y los compose se conectan a
 clientes → AdGuard (53, filtrado) → Unbound (5335, recursivo + DNSSEC) → raíz
 ```
 
-`scripts/disable_dns.sh` libera el puerto 53 desactivando el stub listener de `systemd-resolved`. Un cron mensual (`scripts/update_unbound_roots.sh`) refresca `root.hints` y `root.key` de Unbound (en `appdata/unbound/`) y reinicia el contenedor.
+`scripts/disable_dns.sh` libera el puerto 53 desactivando el stub listener de `systemd-resolved`. Un cron periódico (`scripts/update_unbound_stack.sh`) re-despliega el stack de Unbound para mantener las raíces al día (ver abajo).
 
-### Raíces de Unbound (`root.hints` / `root.key`)
+### Raíces de Unbound (`root.hints` / ancla DNSSEC)
 
-Unbound usa dos ficheros que **gestionamos nosotros** (no los baked de la imagen): viven en `/opt/homelab/appdata/unbound/` y montamos ese **directorio entero** sobre **`/var/unbound`** (el home de unbound, donde la base de klutchell resuelve `root.hints`/`root.key` con rutas relativas). **No** repetimos `root-hints`/`trust-anchor-file` en nuestra `unbound.conf` (la base ya los declara → daría *"presented twice"*). Montamos el **dir** y no los ficheros sueltos porque unbound actualiza el ancla con `rename(tmp → root.key)`, y sobre un bind-mount de fichero eso da *"rename: Resource busy"*. Así persisten entre recreates del stack **sin rebuild** de la imagen.
+**Las gestiona la propia imagen `klutchell/unbound`, no nosotros.** Trae `root.hints` y el ancla DNSSEC *baked* (en `/var/unbound`), y unbound mantiene el ancla **al día en runtime** vía `auto-trust-anchor-file` (RFC5011). Por eso **no** montamos ni declaramos `root-hints`/`trust-anchor-file` en `unbound.conf` (duplicarlos da *"presented twice"* / *"second hints ignored"*).
 
-- **Propiedad `101:102`** (uid/gid del usuario `unbound` de klutchell): `root.key` es `auto-trust-anchor-file`, la **escribe el propio unbound** (RFC5011), así que debe poder hacerlo. `fix_permissions.sh` deja `appdata/unbound/` como `101:102`, dir `755`, ficheros `644`.
-- **El bootstrap los baja solo:** `scripts/fetch_unbound_roots.sh` (lo lanza `init.sh` tras instalar Docker) descarga `root.hints` y genera `root.key`. Idempotente (si ya existen, no toca nada).
-- **El cron mensual** `update_unbound_roots.sh` los refresca y reinicia el contenedor.
+El único caso en que las raíces baked se quedarían atrás es si nunca se actualiza la imagen. Para evitarlo:
 
-Para (re)generarlos a mano:
+- **`scripts/update_unbound_stack.sh`** instala un cron (por defecto mensual, día 1 a las 04:00 → `/etc/cron.d/homelab-unbound-update`, log en `/var/log/homelab-unbound.log`). El cron hace `docker pull klutchell/unbound:latest` y **recrea** el contenedor con su mismo compose (localizado por las labels de compose del propio contenedor), trayendo `root.hints` frescos, ancla actualizada y parches de unbound.
+- Ajusta la frecuencia editando `CRON_SCHEDULE` en el script.
+
+Para forzar una actualización a mano:
 
 ```bash
-# root.hints — servidores raíz
-curl -fsSL https://www.internic.net/domain/named.root \
-  -o /opt/homelab/appdata/unbound/root.hints
-
-# root.key — ancla DNSSEC (vía la imagen, sin instalar nada en el host)
-docker run --rm --user root --entrypoint unbound-anchor \
-  -v /opt/homelab/appdata/unbound:/anchor klutchell/unbound:latest -a /anchor/root.key
+sudo /ruta/al/repo/scripts/update_unbound_stack.sh --run
 ```
-> `unbound-anchor` devuelve `1` cuando **actualiza** el ancla — es normal, no es error. Tras (re)generarlos a mano: `sudo chown 101:102 /opt/homelab/appdata/unbound/root.{hints,key}` (o relanza `fix_permissions.sh`), si no unbound no podrá escribir `root.key`.
+> Si el contenedor no se desplegó vía `docker compose` (sin labels), el script avisa y solo reinicia; en ese caso re-despliega el stack `unbound` desde dockhand para aplicar la imagen nueva.
 
 ### Socket de Docker: socket-proxy-ro + hawser
 
@@ -682,4 +676,4 @@ Las instala el bootstrap, son idempotentes (no se duplican):
 | Fichero | Frecuencia | Función |
 | --- | --- | --- |
 | `/etc/cron.d/homelab-autoupdate` | Diaria 03:00 | `apt-get upgrade` desatendido → `/var/log/homelab-autoupdate.log` |
-| `/etc/cron.d/homelab-unbound-roots` | Mensual día 1, 04:00 | Refresca `root.hints` + `root.key` de Unbound y reinicia el contenedor → `/var/log/homelab-unbound.log` |
+| `/etc/cron.d/homelab-unbound-update` | Mensual día 1, 04:00 | `docker pull` + recreate del stack Unbound (refresca raíces baked + parches) → `/var/log/homelab-unbound.log` |
