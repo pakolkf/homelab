@@ -25,7 +25,16 @@ services:
       - SYSTEM=0
       - VOLUMES=0
       - IMAGES=0
-      
+      - INFO=0
+      - TASKS=0
+      - DISTRIBUTION=0
+      - PLUGINS=0
+      - SERVICES=0
+      - NODES=0
+      - CONFIGS=0
+      - SESSION=0
+      - SWARM=0
+
       # Mantener lo esencial para funcionamiento
       - PING=1
       - VERSION=1
