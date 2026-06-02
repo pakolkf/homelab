@@ -142,7 +142,7 @@ En tiempo de ejecución, el host además tiene `/opt/homelab/stacks/` (runtime q
    sudo ./scripts/fix_permissions.sh
    ```
 
-   - `hawser/.env`: `PORT=2376`, `STACKS_DIR=/opt/homelab/stacks`, `TOKEN=<token>`.
+   - `hawser/.env`: `PORT=2376`, `STACKS_DIR=/opt/homelab/stacks`, `TOKEN=<token>` (genéralo con `openssl rand -base64 32`).
    - `dockhand/.env`: `HOST_DATA_DIR=/opt/homelab/appdata/dockhand` (dónde está su `/app/data`). Ya no usa `STACK_DIR`.
    - `docker/.env` (ya lo generó `init.sh` con tus `PUID`/`PGID` reales — el rsync no lo toca): edita `FQDN` y `ACME_EMAIL` y reejecuta `sudo ./scripts/sync_appdata.sh` para renderizar la config.
 
@@ -188,7 +188,7 @@ Para sumar otro host (p.ej. `pve01`, `raspi01`) que ejecute stacks gestionados d
    ```ini
    PORT=2376
    STACKS_DIR=/opt/homelab/stacks
-   TOKEN=<token-de-este-host>
+   TOKEN=<token-de-este-host>      # openssl rand -base64 32
    ```
    En `/opt/homelab/docker/hawser/docker-compose.yaml`, **publica el puerto** (añade bajo el servicio `hawser`):
    ```yaml
