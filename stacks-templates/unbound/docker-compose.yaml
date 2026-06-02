@@ -8,16 +8,14 @@ services:
       - /opt/homelab/docker/.env
       - .env
     volumes:
-      # Config custom en el include dir de klutchell (su base la incluye y ya
-      # gestiona root.hints/root.key/DNSSEC). NO sobrescribir unbound.conf.
+      # Config custom en el include dir de klutchell (su base lo incluye).
       - ${APPDATA_DIR}/unbound.conf:/etc/unbound/custom.conf.d/unbound.conf:ro
+      # Gestionamos NOSOTROS las raíces (montadas + cron mensual), no las de la
+      # imagen. La config custom las referencia (root-hints + trust-anchor-file).
+      - ${APPDATA_DIR}/root.hints:/etc/unbound/root.hints:ro
+      - ${APPDATA_DIR}/root.key:/etc/unbound/root.key:ro
     networks:
       - homelab_dns
-    healthcheck:
-      # klutchell/unbound es FROM scratch: no hay /bin/sh ni 'drill'. Cualquier
-      # healthcheck con shell/binario externo falla ("exec /bin/sh: not found").
-      # Lo deshabilitamos (NONE).
-      test: ["NONE"]
 
 networks:
   homelab_dns:
