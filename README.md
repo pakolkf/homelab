@@ -44,10 +44,11 @@ Tres árboles en el host:
 | Ruta | Qué contiene | Quién la gestiona |
 | --- | --- | --- |
 | `/opt/homelab/docker/` | Bootstrap: `hawser`, `dockhand` y el `.env` del host | Tú, por terminal |
-| `/opt/homelab/stacks/{env}/{stack}/` | Recetas (`compose.yaml` + `.env`) de los stacks | dockhand (estructura impuesta) |
+| `/opt/homelab/stacks/<stack>/` | Runtime de **hawser** de este host (los compose que ejecuta) | hawser (`STACKS_DIR`) |
+| `…/dockhand/data/stacks/{env}/{stack}/` | Copia central de los stacks de **todos** los environments | dockhand (interno, estructura impuesta) |
 | `/opt/homelab/appdata/<svc>/` | Config + datos de cada servicio | `sync_appdata.sh` (config) + runtime (datos) |
 
-- **Recetas en el repo:** las plantillas de los servicios viven en `stacks-templates/<svc>/` y son la fuente para crear los stacks en dockhand. dockhand las escribe en `/opt/homelab/stacks/{env}/{stack}/` (el `{env}` es el nombre del environment que le des; los stacks de Git van a `…/dockhand/data/git-repos/{env}/{stack}/`).
+- **Recetas en el repo:** las plantillas viven en `stacks-templates/<svc>/` y son la fuente para crear los stacks en dockhand. Al desplegar, dockhand guarda la **copia central** en `…/dockhand/data/stacks/{env}/{stack}/` (todos los environments, su almacén interno) y **hawser** escribe/ejecuta el **runtime** en su `STACKS_DIR` = `/opt/homelab/stacks/<stack>/` (plano, por host). Los stacks de Git van a `…/dockhand/data/git-repos/{env}/{stack}/`.
 - **Datos y config en appdata:** los volúmenes apuntan a `${APPDATA_DIR}` (= `/opt/homelab/appdata/<svc>`, ruta absoluta). La config versionada (p.ej. `traefik.yaml`, `dynamic/`, `unbound.conf`, `AdGuardHome.yaml`) la copia ahí `scripts/sync_appdata.sh` desde el repo, porque dockhand solo escribe el `compose`. Al copiarla, `sync_appdata.sh` **renderiza** `${FQDN}` y `${ACME_EMAIL}` con los valores del `.env` del host, así el repo nunca contiene el dominio ni el email reales.
 - **Rescate sin UI:** si dockhand cae, basta SSH al host y `docker compose` a mano sobre la receta en `/opt/homelab/stacks/...` (o copiar lo que haga falta a `appdata`).
 
@@ -110,7 +111,7 @@ volumes:
     └── create_docker_network.sh Crea las 3 redes externas del homelab
 ```
 
-En tiempo de ejecución, el host además tiene `/opt/homelab/stacks/` (recetas que escribe dockhand) y `/opt/homelab/appdata/` (config + datos), que **no** están en el repo.
+En tiempo de ejecución, el host además tiene `/opt/homelab/stacks/` (runtime que ejecuta hawser en este host) y `/opt/homelab/appdata/` (config + datos), que **no** están en el repo. Las copias centrales de las recetas (todos los environments) viven en `…/dockhand/data/stacks/`.
 
 ---
 
@@ -509,7 +510,7 @@ Tras arrancar el stack `cloudflare`, revisa los logs de `cloudflare-tunnels` y `
 
 ## Operación habitual
 
-- **Servicios gestionados por dockhand:** opéralos desde la UI (deploy, logs, restart, update). Las recetas viven en `/opt/homelab/stacks/{env}/{stack}/`.
+- **Servicios gestionados por dockhand:** opéralos desde la UI (deploy, logs, restart, update). El runtime vive en `/opt/homelab/stacks/<stack>/` (hawser) y la copia central en `…/dockhand/data/stacks/{env}/{stack}/`.
 - **Bootstrap (`hawser`, `dockhand`):** por terminal.
 
   ```bash
