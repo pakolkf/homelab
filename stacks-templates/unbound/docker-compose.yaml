@@ -8,9 +8,9 @@ services:
       - /opt/homelab/docker/.env
       - .env
     volumes:
-      - ${APPDATA_DIR}/unbound.conf:/opt/unbound/etc/unbound/unbound.conf:ro
-      - ${APPDATA_DIR}/root.hints:/opt/unbound/etc/unbound/root.hints:ro
-      - ${APPDATA_DIR}/root.key:/opt/unbound/etc/unbound/root.key:ro
+      - ${APPDATA_DIR}/unbound.conf:/etc/unbound/unbound.conf:ro
+      - ${APPDATA_DIR}/root.hints:/etc/unbound/root.hints:ro
+      - ${APPDATA_DIR}/root.key:/etc/unbound/root.key:ro
     networks:
       - homelab_dns
     healthcheck:
