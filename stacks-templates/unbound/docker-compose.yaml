@@ -8,11 +8,6 @@ services:
       - /opt/homelab/docker/.env
       - .env
     volumes:
-      # Solo la config custom (la base la incluye vía include-toplevel custom.conf.d/*.conf).
-      # Las raíces (root.hints + ancla DNSSEC) las trae BAKED la imagen klutchell y
-      # unbound mantiene el ancla en runtime (auto-trust-anchor-file/RFC5011); NO las
-      # montamos. Para refrescarlas se re-despliega el stack periódicamente (cron
-      # scripts/update_unbound_stack.sh: pull de imagen + recreate).
       - ${APPDATA_DIR}/unbound.conf:/etc/unbound/custom.conf.d/unbound.conf:ro
     networks:
       - homelab_dns

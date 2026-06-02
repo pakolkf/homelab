@@ -10,8 +10,6 @@ services:
     ports:
       - "8085:3000"
     volumes:
-      # Datos internos de dockhand (db, .encryption_key, git-repos/, copia
-      # central de stacks). Ruta fija en appdata (el .env global no se interpola).
       - /opt/homelab/appdata/dockhand:/app/data
     networks:
       - homelab_web

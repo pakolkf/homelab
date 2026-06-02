@@ -73,16 +73,6 @@ find "${HOMELAB_DIR}" -xdev \
     \) \
     -exec chmod 600 {} \; 2>/dev/null || true
 
-# Unbound (imagen klutchell): el proceso corre como uid 101 y solo LEE su
-# unbound.conf (montada :ro). Las raíces son baked en la imagen (no se montan), así
-# que aquí basta con que la config sea legible por el contenedor: dir 755, ficheros
-# 644 (world-readable). Va al FINAL para revertir el dir 750 / fichero 640 previos.
-echo "→ Unbound (klutchell): config legible (dir 755, ficheros 644)..."
-find "${HOMELAB_DIR}" -xdev -type d -path "*/appdata/unbound" \
-    -exec chmod 755 {} \; 2>/dev/null || true
-find "${HOMELAB_DIR}" -xdev -type f -path "*/appdata/unbound/*" \
-    -exec chmod 644 {} \; 2>/dev/null || true
-
 echo
 echo "========================================="
 echo " CONFIGURACIÓN FINALIZADA"
