@@ -1,6 +1,6 @@
 services:
   unbound:
-    image: mvance/unbound:latest
+    image: ${UNBOUND_IMAGE:-mvance/unbound:latest}
     container_name: unbound
     hostname: unbound
     restart: unless-stopped
