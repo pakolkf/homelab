@@ -90,6 +90,7 @@ volumes:
 │   ├── duplicati/               Backups
 │   ├── filebrowser/             Explorador de ficheros web
 │   ├── homarr/                  Dashboard principal
+│   ├── indexers/               flaresolverr + jackett + prowlarr (indexadores)
 │   ├── nutify/                  Notificaciones / monitor UPS
 │   ├── socket-proxy/            Proxy read-only al socket Docker
 │   ├── tailscale/               VPN mesh (network_mode: host)
@@ -324,6 +325,9 @@ Gestionados por dockhand:
 | duplicati | `lscr.io/linuxserver/duplicati` | 8200 | Backups |
 | vaultwarden | `vaultwarden/server` | 8222 | Gestor de contraseñas |
 | wgdashboard | `ghcr.io/wgdashboard/wgdashboard` | 10086, 51820/udp | Panel WireGuard |
+| indexers · flaresolverr | `ghcr.io/flaresolverr/flaresolverr` | — (interno 8191) | Resolutor de retos Cloudflare para los indexadores |
+| indexers · jackett | `lscr.io/linuxserver/jackett` | 9117 | Indexador de torrents/usenet |
+| indexers · prowlarr | `lscr.io/linuxserver/prowlarr` | 9696 | Gestor de indexadores (integra con *arr) |
 | tailscale | `tailscale/tailscale` | host network | VPN mesh |
 | authentik | `ghcr.io/goauthentik/server` | 9000, 9443 | SSO / proveedor de identidad |
 | cloudflare-tunnels | `cloudflare/cloudflared` | — | Túnel Cloudflare |

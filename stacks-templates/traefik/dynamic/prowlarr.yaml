@@ -1,0 +1,16 @@
+http:
+  routers:
+    prowlarr:
+      rule: "Host(`prowlarr.${FQDN}`)"
+      entryPoints:
+        - websecure
+      service: prowlarr
+      middlewares:
+        - secure-headers
+        - error-pages
+
+  services:
+    prowlarr:
+      loadBalancer:
+        servers:
+          - url: "http://prowlarr:9696"

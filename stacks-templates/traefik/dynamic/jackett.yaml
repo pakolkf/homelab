@@ -1,0 +1,16 @@
+http:
+  routers:
+    jackett:
+      rule: "Host(`jackett.${FQDN}`)"
+      entryPoints:
+        - websecure
+      service: jackett
+      middlewares:
+        - secure-headers
+        - error-pages
+
+  services:
+    jackett:
+      loadBalancer:
+        servers:
+          - url: "http://jackett:9117"

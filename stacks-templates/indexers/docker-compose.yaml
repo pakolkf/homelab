@@ -1,0 +1,54 @@
+services:
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    hostname: flaresolverr
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - .env
+    networks:
+      - indexers
+
+  jackett:
+    image: lscr.io/linuxserver/jackett:latest
+    container_name: jackett
+    hostname: jackett
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - .env
+    ports:
+      - 9117:9117
+    volumes:
+      - ${APPDATA_DIR}/jackett/config:/config
+      - ${APPDATA_DIR}/jackett/downloads:/downloads
+    networks:
+      - indexers
+      - homelab_web
+    depends_on:
+      - flaresolverr
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    hostname: prowlarr
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - .env
+    ports:
+      - 9696:9696
+    volumes:
+      - ${APPDATA_DIR}/prowlarr/config:/config
+    networks:
+      - indexers
+      - homelab_web
+    depends_on:
+      - flaresolverr
+
+networks:
+  homelab_web:
+    external: true
+  indexers:
+    driver: bridge
