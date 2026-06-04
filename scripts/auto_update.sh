@@ -15,12 +15,15 @@ fi
 
 echo "Configurando cron diario de actualizacion del sistema..."
 
+# Reinicia SOLO si el upgrade instalo algo que lo requiere: Debian/Ubuntu crea
+# /var/run/reboot-required en ese caso (kernel, libc...). Asi no reinicia a diario
+# ni en cada paquete, solo cuando de verdad hace falta.
 cat > "${AUTOUPDATE_CRON}" << CRONEOF
-# Homelab -- auto-update diario del SO
+# Homelab -- auto-update diario del SO (03:00) + reinicio solo si es necesario
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-* 3 * * * root apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get -y -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >> ${AUTOUPDATE_LOG} 2>&1
+0 3 * * * root { apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get -y -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade && { [ -f /var/run/reboot-required ] && /sbin/reboot; }; } >> ${AUTOUPDATE_LOG} 2>&1
 CRONEOF
 
 chmod 644 "${AUTOUPDATE_CRON}"

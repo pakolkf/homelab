@@ -679,5 +679,5 @@ Las instala el bootstrap, son idempotentes (no se duplican):
 
 | Fichero | Frecuencia | Función |
 | --- | --- | --- |
-| `/etc/cron.d/homelab-autoupdate` | Diaria 03:00 | `apt-get upgrade` desatendido → `/var/log/homelab-autoupdate.log` |
+| `/etc/cron.d/homelab-autoupdate` | Diaria 03:00 | `apt-get upgrade` desatendido + reinicio **solo si** `/var/run/reboot-required` → `/var/log/homelab-autoupdate.log` |
 | `/etc/cron.d/homelab-unbound-update` | Mensual día 1, 04:00 | `docker pull` + recreate del stack Unbound (refresca raíces baked + parches) → `/var/log/homelab-unbound.log` |
