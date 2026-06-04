@@ -1,0 +1,16 @@
+http:
+  routers:
+    qbittorrent:
+      rule: "Host(`qbittorrent.${FQDN}`)"
+      entryPoints:
+        - websecure
+      service: qbittorrent
+      middlewares:
+        - secure-headers
+        - error-pages
+
+  services:
+    qbittorrent:
+      loadBalancer:
+        servers:
+          - url: "http://qbittorrent:8090"

@@ -86,6 +86,7 @@ volumes:
 │   ├── authentik/               SSO / proveedor de identidad
 │   ├── beszel/                  Monitorización ligera
 │   ├── cloudflare/              Cloudflare Tunnel + companion para Traefik
+│   ├── downloaders/            qui + qbittorrent + transmission + amule (clientes P2P)
 │   ├── dozzle/                  Logs de contenedores en vivo
 │   ├── duplicati/               Backups
 │   ├── filebrowser/             Explorador de ficheros web
@@ -328,6 +329,10 @@ Gestionados por dockhand:
 | indexers · flaresolverr | `ghcr.io/flaresolverr/flaresolverr` | — (interno 8191) | Resolutor de retos Cloudflare para los indexadores |
 | indexers · jackett | `lscr.io/linuxserver/jackett` | 9117 | Indexador de torrents/usenet |
 | indexers · prowlarr | `lscr.io/linuxserver/prowlarr` | 9696 | Gestor de indexadores (integra con *arr) |
+| downloaders · qui | `ghcr.io/autobrr/qui` | 7476 | WebUI para gestionar qBittorrent |
+| downloaders · qbittorrent | `lscr.io/linuxserver/qbittorrent` | 8090, 6881 | Cliente BitTorrent |
+| downloaders · transmission | `lscr.io/linuxserver/transmission` | 9091, 51413 | Cliente BitTorrent |
+| downloaders · amule | `ngosang/amule` | 4711, 4662, 4672/udp | Cliente ED2K/Kademlia |
 | tailscale | `tailscale/tailscale` | host network | VPN mesh |
 | authentik | `ghcr.io/goauthentik/server` | 9000, 9443 | SSO / proveedor de identidad |
 | cloudflare-tunnels | `cloudflare/cloudflared` | — | Túnel Cloudflare |

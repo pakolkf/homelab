@@ -1,0 +1,16 @@
+http:
+  routers:
+    amule:
+      rule: "Host(`amule.${FQDN}`)"
+      entryPoints:
+        - websecure
+      service: amule
+      middlewares:
+        - secure-headers
+        - error-pages
+
+  services:
+    amule:
+      loadBalancer:
+        servers:
+          - url: "http://amule:4711"

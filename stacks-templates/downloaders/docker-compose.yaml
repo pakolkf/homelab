@@ -1,0 +1,77 @@
+services:
+  qui:
+    image: ghcr.io/autobrr/qui:latest
+    container_name: qui
+    hostname: qui
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - .env
+    ports:
+      - 7476:7476
+    volumes:
+      - ${APPDATA_DIR}/qui/config:/config
+    networks:
+      - homelab_web
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    hostname: qbittorrent
+    restart: unless-stopped
+    stop_grace_period: "10s"
+    env_file:
+      - /opt/homelab/docker/.env
+      - .env
+    ports:
+      - 8090:8090          # WebUI (= WEBUI_PORT)
+      - 6881:6881          # P2P (debe estar publicado para conexiones entrantes)
+      - 6881:6881/udp
+    volumes:
+      - ${APPDATA_DIR}/qbittorrent/config:/config
+      - ${MEDIA_DIR}/downloads/torrents:/downloads
+    networks:
+      - homelab_web
+
+  transmission:
+    image: lscr.io/linuxserver/transmission:latest
+    container_name: transmission
+    hostname: transmission
+    restart: unless-stopped
+    stop_grace_period: "10s"
+    env_file:
+      - /opt/homelab/docker/.env
+      - .env
+    ports:
+      - 9091:9091          # WebUI/RPC
+      - 51413:51413        # P2P (entrantes)
+      - 51413:51413/udp
+    volumes:
+      - ${APPDATA_DIR}/transmission/config:/config
+      - ${MEDIA_DIR}/downloads/torrents:/downloads
+    networks:
+      - homelab_web
+
+  amule:
+    image: ngosang/amule:latest
+    container_name: amule
+    hostname: amule
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - .env
+    ports:
+      - 4711:4711          # WebUI
+      - 4712:4712          # remote GUI / EC
+      - 4662:4662          # ed2k TCP (entrantes)
+      - 4665:4665/udp      # ed2k global search UDP
+      - 4672:4672/udp      # ed2k UDP
+    volumes:
+      - ${APPDATA_DIR}/amule/config:/home/amule/.aMule
+      - ${MEDIA_DIR}/downloads/amule:/downloads
+    networks:
+      - homelab_web
+
+networks:
+  homelab_web:
+    external: true

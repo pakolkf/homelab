@@ -1,0 +1,16 @@
+http:
+  routers:
+    qui:
+      rule: "Host(`qui.${FQDN}`)"
+      entryPoints:
+        - websecure
+      service: qui
+      middlewares:
+        - secure-headers
+        - error-pages
+
+  services:
+    qui:
+      loadBalancer:
+        servers:
+          - url: "http://qui:7476"

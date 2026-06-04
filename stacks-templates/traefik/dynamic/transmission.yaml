@@ -1,0 +1,16 @@
+http:
+  routers:
+    transmission:
+      rule: "Host(`transmission.${FQDN}`)"
+      entryPoints:
+        - websecure
+      service: transmission
+      middlewares:
+        - secure-headers
+        - error-pages
+
+  services:
+    transmission:
+      loadBalancer:
+        servers:
+          - url: "http://transmission:9091"
