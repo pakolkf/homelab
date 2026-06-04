@@ -9,10 +9,12 @@ más **amarr** (conector Torznab de aMule para los *arr). Todos en `homelab_web`
 **No tiene WebUI** (por eso no se le pone router de Traefik ni puerto publicado):
 solo expone endpoints Torznab en `:8080`, consumidos por red. Se conecta a aMule
 por **EC** (`amule:4712`) con `AMULE_PASSWORD` = la **Remote GUI** de aMule
-(`GUI_PWD`), **no** la de la WebUI. Uso:
+(`GUI_PWD`), **no** la de la WebUI.
 
-- **Prowlarr** → indexador Torznab genérico → `http://amarr:8080/indexer/amule`
-- **Sonarr/Radarr** → download client → `http://amarr:8080`
+Se añade **directamente en Sonarr/Radarr** (NO en Prowlarr — amarr no es compatible
+con Prowlarr):
+- Indexador Torznab (en Sonarr/Radarr) → `http://amarr:8080/indexer/amule`
+- Download client (en Sonarr/Radarr) → `http://amarr:8080`
 
 `AMULE_FINISHED_PATH` (`/finished`) se monta sobre la carpeta `incoming` de aMule
 para que los *arr importen lo terminado. Verifica la conexión con `docker logs amarr`
