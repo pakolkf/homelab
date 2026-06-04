@@ -2,8 +2,12 @@ http:
   middlewares:
     error-pages:
       errors:
+        # NO interceptar 401: lleva la cabecera WWW-Authenticate del reto Basic
+        # Auth (p.ej. transmission). Si se intercepta, el navegador no recibe el
+        # reto y no puede loguearse. Por eso el rango omite el 401.
         status:
-          - "400-599"
+          - "400"
+          - "402-599"
         service: error-pages
         query: "/{status}.html"
 
