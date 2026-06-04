@@ -11,10 +11,11 @@ solo expone endpoints Torznab en `:8080`, consumidos por red. Se conecta a aMule
 por **EC** (`amule:4712`) con `AMULE_PASSWORD` = la **Remote GUI** de aMule
 (`GUI_PWD`), **no** la de la WebUI.
 
-Se añade **directamente en Sonarr/Radarr** (NO en Prowlarr — amarr no es compatible
-con Prowlarr):
-- Indexador Torznab (en Sonarr/Radarr) → `http://amarr:8080/indexer/amule`
-- Download client (en Sonarr/Radarr) → `http://amarr:8080`
+Se añade **directamente en los *arr** (NO en Prowlarr — no es compatible):
+- **Indexador Torznab → solo en Sonarr** → `http://amarr:8080/indexer/amule`
+  (en **Radarr NO**: el soporte de categorías es solo de Sonarr; añadirlo como
+  indexador en Radarr le rompe el frontend `getValidationFailures.reduce`).
+- Download client (Sonarr/Radarr) → `http://amarr:8080`
 
 `AMULE_FINISHED_PATH` (`/finished`) se monta sobre la carpeta `incoming` de aMule
 para que los *arr importen lo terminado. Verifica la conexión con `docker logs amarr`
