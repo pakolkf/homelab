@@ -1,7 +1,22 @@
 # downloaders
 
-Clientes P2P: **qui** (UI de qBittorrent) · **qBittorrent** · **transmission** · **aMule**.
-Todos en `homelab_web` (acceso vía Traefik; routers en `traefik/dynamic/`).
+Clientes P2P: **qui** (UI de qBittorrent) · **qBittorrent** · **transmission** · **aMule**,
+más **amarr** (conector Torznab de aMule para los *arr). Todos en `homelab_web`
+(las WebUI se exponen vía Traefik; routers en `traefik/dynamic/`).
+
+## amarr (aMule -> Servarr)
+
+**No tiene WebUI** (por eso no se le pone router de Traefik ni puerto publicado):
+solo expone endpoints Torznab en `:8080`, consumidos por red. Se conecta a aMule
+por **EC** (`amule:4712`) con `AMULE_PASSWORD` = la **Remote GUI** de aMule
+(`GUI_PWD`), **no** la de la WebUI. Uso:
+
+- **Prowlarr** → indexador Torznab genérico → `http://amarr:8080/indexer/amule`
+- **Sonarr/Radarr** → download client → `http://amarr:8080`
+
+`AMULE_FINISHED_PATH` (`/finished`) se monta sobre la carpeta `incoming` de aMule
+para que los *arr importen lo terminado. Verifica la conexión con `docker logs amarr`
+(si da error de auth → `AMULE_PASSWORD` ≠ `GUI_PWD` real).
 
 ## Ajustes recomendados (se aplican DENTRO de cada app)
 

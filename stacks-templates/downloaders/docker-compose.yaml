@@ -72,6 +72,25 @@ services:
     networks:
       - homelab_web
 
+  # Conector Torznab que expone aMule como indexador/cliente para los *arr.
+  # NO tiene WebUI: se consume por red (Prowlarr/Sonarr -> http://amarr:8080).
+  # Se conecta a aMule por EC (4712) con AMULE_PASSWORD = la Remote GUI (GUI_PWD).
+  amarr:
+    image: vexdev/amarr:latest
+    container_name: amarr
+    hostname: amarr
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - .env
+    volumes:
+      - ${APPDATA_DIR}/amarr/config:/config
+      - ${MEDIA_DIR}/downloads/amule/incoming:/finished
+    networks:
+      - homelab_web
+    depends_on:
+      - amule
+
 networks:
   homelab_web:
     external: true

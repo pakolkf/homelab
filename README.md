@@ -333,6 +333,7 @@ Gestionados por dockhand:
 | downloaders · qbittorrent | `lscr.io/linuxserver/qbittorrent` | 8090, 6881 | Cliente BitTorrent |
 | downloaders · transmission | `lscr.io/linuxserver/transmission` | 9091, 51413 | Cliente BitTorrent |
 | downloaders · amule | `ngosang/amule` | 4711, 4662, 4672/udp | Cliente ED2K/Kademlia |
+| downloaders · amarr | `vexdev/amarr` | — (interno 8080) | Conector Torznab de aMule para los *arr |
 | tailscale | `tailscale/tailscale` | host network | VPN mesh |
 | authentik | `ghcr.io/goauthentik/server` | 9000, 9443 | SSO / proveedor de identidad |
 | cloudflare-tunnels | `cloudflare/cloudflared` | — | Túnel Cloudflare |
