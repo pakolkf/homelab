@@ -6,6 +6,7 @@
 #       entryPoints: [websecure]
 #       service: mi-servicio
 #       middlewares: [secure-headers, error-pages]
+#       tls: {}
 #   services:
 #     mi-servicio:
 #       loadBalancer:
