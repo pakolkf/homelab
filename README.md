@@ -107,6 +107,7 @@ volumes:
     ├── update_unbound_stack.sh  Cron periódico: pull de imagen + recreate de unbound (refresca raíces)
     ├── disable_ipv6.sh          Desactiva IPv6 (sysctl)
     ├── disable_dns.sh           Libera el puerto 53 (stub de systemd-resolved)
+    ├── enable_firewall.sh       UFW: deny incoming + allow 22/tcp (SSH), 80/tcp, 443/tcp
     ├── fix_unmask.sh            umask 027 para el usuario
     ├── create_estructure.sh     Crea /opt/homelab/{docker,stacks,appdata} y el .env del host
     ├── fix_overcommit.sh        sysctl vm.overcommit_memory (Redis de Homarr)
@@ -132,7 +133,7 @@ En tiempo de ejecución, el host además tiene `/opt/homelab/stacks/` (runtime q
    sudo ./scripts/init.sh
    ```
 
-   Deja el sistema preparado: actualizado, IP estática, sin IPv6, DNS del host configurado, `/opt/homelab/{docker,stacks,appdata}` creado, Docker instalado, las redes `homelab_web`, `homelab_socket` y `homelab_dns` creadas, y la config versionada copiada a `appdata` (`sync_appdata.sh`).
+   Deja el sistema preparado: actualizado, IP estática, sin IPv6, DNS del host configurado, **UFW activo** (SSH `22/tcp`, HTTP `80/tcp`, HTTPS `443/tcp`; resto denegado), `/opt/homelab/{docker,stacks,appdata}` creado, Docker instalado, las redes `homelab_web`, `homelab_socket` y `homelab_dns` creadas, y la config versionada copiada a `appdata` (`sync_appdata.sh`).
 
 3. Copia el bootstrap a `/opt/homelab/docker/` y crea sus `.env`:
 
@@ -672,6 +673,10 @@ Logs de Traefik (acceso y servicio) en `/opt/homelab/appdata/traefik/logs/`.
   - Ficheros `*.pem`, `*.key`, `id_rsa`, `id_ed25519` → `600`.
   - `.git/` se ignora.
 - IPv6 deshabilitado a nivel kernel (`/etc/sysctl.d/99-homelab-disable-ipv6.conf`).
+- **Firewall del host (UFW)**: lo activa `scripts/enable_firewall.sh` (lo lanza `init.sh`). Política `default deny incoming` + `default allow outgoing`, con tres reglas:
+  - `22/tcp` — **SSH (imprescindible también para acceso local en LAN)**. Sin esta regla pierdes la sesión SSH al hacer `ufw enable`, por eso el script la añade **antes** de habilitar UFW.
+  - `80/tcp`, `443/tcp` — Traefik (HTTP/HTTPS).
+  - Los puertos publicados por contenedores Docker (p.ej. `8085` de dockhand, `53`/`8054` de AdGuard, `9000` de Authentik) **no** los filtra UFW: Docker inyecta sus propias reglas en `iptables` antes del `INPUT` de UFW. Para bloquearlos no se publican al host (o se publican en `127.0.0.1`).
 - Acceso al socket Docker: lectura vía `socket-proxy-ro`; escritura solo por `hawser` (con token), único contenedor con el socket crudo.
 - Cabeceras HTTPS endurecidas vía middleware `secure-headers` de Traefik (HSTS, CSP, frame-deny, etc.).
 

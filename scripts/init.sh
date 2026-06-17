@@ -13,6 +13,7 @@ cd "$SCRIPT_DIR"
 ./update_unbound_stack.sh
 ./disable_ipv6.sh
 ./disable_dns.sh
+./enable_firewall.sh
 ./fix_unmask.sh
 ./create_estructure.sh
 ./fix_overcommit.sh

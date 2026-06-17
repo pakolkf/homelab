@@ -3,8 +3,6 @@
 set -uo pipefail
 
 HOMELAB_DIR="/opt/homelab"
-# Usuario real que invocó el script: vía sudo -> SUDO_UID/SUDO_GID (uid de pepe);
-# root login sin sudo -> id -u / id -g (será 0).
 UID_TARGET="${SUDO_UID:-$(id -u)}"
 GID_TARGET="${SUDO_GID:-$(id -g)}"
 
@@ -26,9 +24,6 @@ fi
 echo "→ Eliminando atributos immutable..."
 chattr -R -i "${HOMELAB_DIR}" 2>/dev/null || true
 
-# -xdev: no cruzar a otros sistemas de ficheros montados (p.ej. un NAS NFS/SMB
-# en /opt/homelab/stacks). Sus permisos los gobierna el export del NAS; aquí solo
-# tocamos el disco local. Sin esto, cada ejecución recorrería el NAS entero por red.
 echo "→ Aplicando propietario ${UID_TARGET}:${GID_TARGET}..."
 find "${HOMELAB_DIR}" -xdev \
     -path "*/.git" -prune -o \
@@ -71,6 +66,12 @@ find "${HOMELAB_DIR}" -xdev \
         -o -name "id_rsa" \
         -o -name "id_ed25519" \
     \) \
+    -exec chmod 600 {} \; 2>/dev/null || true
+
+echo "→ Protegiendo archivos ACME de Traefik..."
+find "${HOMELAB_DIR}" -xdev \
+    -type f \
+    -name "acme*.json" \
     -exec chmod 600 {} \; 2>/dev/null || true
 
 echo

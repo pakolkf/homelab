@@ -27,6 +27,9 @@ entryPoints:
         certResolver: letsencrypt-staging
         domains:
           - main: "${FQDN}"
+            sans:
+              - "*.${FQDN}"
+
   dashboard:
     address: ":8080"
 
