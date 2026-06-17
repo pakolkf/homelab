@@ -1,0 +1,17 @@
+http:
+  routers:
+    wgdashboard:
+      rule: "Host(`wg.${FQDN}`)"
+      entryPoints:
+        - websecure
+      service: wgdashboard
+      middlewares:
+        - secure-headers
+        - error-pages
+      tls: {}
+
+  services:
+    wgdashboard:
+      loadBalancer:
+        servers:
+          - url: "http://wgdashboard:10086"

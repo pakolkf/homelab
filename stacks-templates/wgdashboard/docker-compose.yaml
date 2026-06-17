@@ -13,7 +13,6 @@ services:
       - /opt/homelab/docker/.env
       - .env
     ports:
-      - "10086:10086/tcp"
       - "51820:51820/udp"
     volumes:
       - ${APPDATA_DIR}/conf:/etc/wireguard

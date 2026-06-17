@@ -6,8 +6,6 @@ services:
     env_file:
       - /opt/homelab/docker/.env
       - .env
-    ports:
-      - "8086:8080"
     volumes:
       - ${APPDATA_DIR}/data:/data
     networks:

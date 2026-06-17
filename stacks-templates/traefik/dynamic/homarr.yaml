@@ -1,0 +1,17 @@
+http:
+  routers:
+    homarr:
+      rule: "Host(`homarr.${FQDN}`)"
+      entryPoints:
+        - websecure
+      service: homarr
+      middlewares:
+        - secure-headers
+        - error-pages
+      tls: {}
+
+  services:
+    homarr:
+      loadBalancer:
+        servers:
+          - url: "http://homarr:7575"

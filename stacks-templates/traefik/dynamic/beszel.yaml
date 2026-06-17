@@ -1,0 +1,17 @@
+http:
+  routers:
+    beszel:
+      rule: "Host(`beszel.${FQDN}`)"
+      entryPoints:
+        - websecure
+      service: beszel
+      middlewares:
+        - secure-headers
+        - error-pages
+      tls: {}
+
+  services:
+    beszel:
+      loadBalancer:
+        servers:
+          - url: "http://beszel:8090"

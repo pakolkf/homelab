@@ -6,8 +6,6 @@ services:
     env_file:
       - /opt/homelab/docker/.env
       - .env
-    ports:
-      - "5050:5050"
     volumes:
       - ${APPDATA_DIR}/data:/app/nutify/data
       - ${APPDATA_DIR}/logs:/app/nutify/logs

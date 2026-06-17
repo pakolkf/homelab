@@ -6,8 +6,6 @@ services:
     env_file:
       - /opt/homelab/docker/.env
       - .env
-    ports:
-      - "8200:8200"
     volumes:
       - ${APPDATA_DIR}/config:/config
       - ${APPDATA_DIR}/backups:/backups

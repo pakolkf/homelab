@@ -1,0 +1,17 @@
+http:
+  routers:
+    nutify:
+      rule: "Host(`nutify.${FQDN}`)"
+      entryPoints:
+        - websecure
+      service: nutify
+      middlewares:
+        - secure-headers
+        - error-pages
+      tls: {}
+
+  services:
+    nutify:
+      loadBalancer:
+        servers:
+          - url: "http://nutify:5050"

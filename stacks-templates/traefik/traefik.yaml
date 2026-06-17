@@ -30,9 +30,6 @@ entryPoints:
             sans:
               - "*.${FQDN}"
 
-  dashboard:
-    address: ":8080"
-
 certificatesResolvers:
   letsencrypt-staging:
     acme:

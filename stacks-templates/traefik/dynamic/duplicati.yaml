@@ -1,0 +1,17 @@
+http:
+  routers:
+    duplicati:
+      rule: "Host(`duplicati.${FQDN}`)"
+      entryPoints:
+        - websecure
+      service: duplicati
+      middlewares:
+        - secure-headers
+        - error-pages
+      tls: {}
+
+  services:
+    duplicati:
+      loadBalancer:
+        servers:
+          - url: "http://duplicati:8200"

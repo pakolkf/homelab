@@ -6,8 +6,6 @@ services:
     env_file:
       - /opt/homelab/docker/.env
       - .env
-    ports:
-      - "8091:8090"
     volumes:
       - ${APPDATA_DIR}/data:/beszel_data
     networks:

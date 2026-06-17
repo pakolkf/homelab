@@ -1,0 +1,17 @@
+http:
+  routers:
+    vaultwarden:
+      rule: "Host(`vault.${FQDN}`)"
+      entryPoints:
+        - websecure
+      service: vaultwarden
+      middlewares:
+        - secure-headers
+        - error-pages
+      tls: {}
+
+  services:
+    vaultwarden:
+      loadBalancer:
+        servers:
+          - url: "http://vaultwarden:80"

@@ -311,32 +311,40 @@ Bootstrap (por terminal):
 
 Gestionados por dockhand:
 
+Convención de la columna **Puerto host**:
+- `—` → solo accesible vía Traefik por FQDN (no publica al host).
+- `80, 443` → entrypoints de Traefik.
+- `53/tcp+udp` (AdGuard) → servicio DNS para los clientes LAN.
+- `51820/udp` (WireGuard), `6881`, `51413`, `4662/4665/4672` → tráfico P2P o de VPN externo, **no** UI.
+- `8054`, `9000/9443` → acceso LAN directo de **rescate** (cuando DNS/Traefik no responden). Quítalos si no los necesitas.
+
 | Stack | Imagen | Puerto host | Función |
 | --- | --- | --- | --- |
-| traefik | `traefik:latest` | 80, 443, 8080 | Reverse proxy + TLS automático |
-| error-pages | `tarampampam/error-pages` | 8090 | Páginas de error personalizadas |
+| traefik | `traefik:latest` | 80, 443 | Reverse proxy + TLS automático |
+| error-pages | `tarampampam/error-pages` | — | Páginas de error personalizadas |
 | socket-proxy | `lscr.io/linuxserver/socket-proxy` | — (interno 2375, read-only) | Acceso de solo lectura al socket Docker |
 | unbound | `klutchell/unbound` | — (interno 5335) | DNS recursivo con DNSSEC |
-| adguard | `adguard/adguardhome` | 53, 8054 | DNS con filtrado de anuncios |
-| homarr | `ghcr.io/homarr-labs/homarr` | 7575 | Dashboard del homelab |
-| dozzle | `amir20/dozzle` | 8086 | Logs en vivo de contenedores |
-| beszel | `henrygd/beszel` | 8091 | Métricas de servidores |
-| uptime-kuma | `louislam/uptime-kuma` | 3013 | Monitor de uptime |
-| nutify | `dartsteven/nutify` | 5050 | Notificaciones / UPS |
-| filebrowser | `filebrowser/filebrowser` | 8088 | Navegador web de ficheros |
-| duplicati | `lscr.io/linuxserver/duplicati` | 8200 | Backups |
-| vaultwarden | `vaultwarden/server` | 8222 | Gestor de contraseñas |
-| wgdashboard | `ghcr.io/wgdashboard/wgdashboard` | 10086, 51820/udp | Panel WireGuard |
+| adguard | `adguard/adguardhome` | 53/tcp+udp, 8054 *(rescate)* | DNS con filtrado de anuncios |
+| homarr | `ghcr.io/homarr-labs/homarr` | — | Dashboard del homelab |
+| dozzle | `amir20/dozzle` | — | Logs en vivo de contenedores |
+| beszel | `henrygd/beszel` | — | Métricas de servidores |
+| uptime-kuma | `louislam/uptime-kuma` | — | Monitor de uptime |
+| nutify | `dartsteven/nutify` | — | Notificaciones / UPS |
+| filebrowser | `filebrowser/filebrowser` | — | Navegador web de ficheros |
+| duplicati | `lscr.io/linuxserver/duplicati` | — | Backups |
+| vaultwarden | `vaultwarden/server` | — | Gestor de contraseñas |
+| wgdashboard | `ghcr.io/wgdashboard/wgdashboard` | 51820/udp | Panel WireGuard (UI vía Traefik; UDP para el túnel) |
 | indexers · flaresolverr | `ghcr.io/flaresolverr/flaresolverr` | — (interno 8191) | Resolutor de retos Cloudflare para los indexadores |
-| indexers · jackett | `lscr.io/linuxserver/jackett` | 9117 | Indexador de torrents/usenet |
-| indexers · prowlarr | `lscr.io/linuxserver/prowlarr` | 9696 | Gestor de indexadores (integra con *arr) |
-| downloaders · qui | `ghcr.io/autobrr/qui` | 7476 | WebUI para gestionar qBittorrent |
-| downloaders · qbittorrent | `lscr.io/linuxserver/qbittorrent` | 8090, 6881 | Cliente BitTorrent |
-| downloaders · transmission | `lscr.io/linuxserver/transmission` | 9091, 51413 | Cliente BitTorrent |
-| downloaders · amule | `ngosang/amule` | 4711, 4662, 4672/udp | Cliente ED2K/Kademlia |
+| indexers · jackett | `lscr.io/linuxserver/jackett` | — | Indexador de torrents/usenet |
+| indexers · prowlarr | `lscr.io/linuxserver/prowlarr` | — | Gestor de indexadores (integra con *arr) |
+| downloaders · qui | `ghcr.io/autobrr/qui` | — | WebUI para gestionar qBittorrent |
+| downloaders · qbittorrent | `lscr.io/linuxserver/qbittorrent` | 6881/tcp+udp | Cliente BitTorrent (UI vía Traefik; TCP/UDP para peers) |
+| downloaders · transmission | `lscr.io/linuxserver/transmission` | 51413/tcp+udp | Cliente BitTorrent (UI vía Traefik; TCP/UDP para peers) |
+| downloaders · amule | `ngosang/amule` | 4662/tcp, 4665/udp, 4672/udp | Cliente ED2K/Kademlia (UI vía Traefik; TCP/UDP para la red eD2K) |
+| downloaders · amutorrent | `g0t3nks/amutorrent` | — | Frontend unificado para los clientes |
 | downloaders · amarr | `vexdev/amarr` | — (interno 8080) | Conector Torznab de aMule (directo en Sonarr/Radarr, no Prowlarr) |
 | tailscale | `tailscale/tailscale` | host network | VPN mesh |
-| authentik | `ghcr.io/goauthentik/server` | 9000, 9443 | SSO / proveedor de identidad |
+| authentik | `ghcr.io/goauthentik/server` | 9000, 9443 *(rescate)* | SSO / proveedor de identidad |
 | cloudflare-tunnels | `cloudflare/cloudflared` | — | Túnel Cloudflare |
 | cloudflare-companion | `tiredofit/docker-traefik-cloudflare-companion` | — | Sincroniza routers de Traefik con DNS de Cloudflare |
 

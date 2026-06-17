@@ -1,0 +1,17 @@
+http:
+  routers:
+    filebrowser:
+      rule: "Host(`filebrowser.${FQDN}`)"
+      entryPoints:
+        - websecure
+      service: filebrowser
+      middlewares:
+        - secure-headers
+        - error-pages
+      tls: {}
+
+  services:
+    filebrowser:
+      loadBalancer:
+        servers:
+          - url: "http://filebrowser:80"

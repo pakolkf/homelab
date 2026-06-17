@@ -1,0 +1,17 @@
+http:
+  routers:
+    uptime-kuma:
+      rule: "Host(`uptime.${FQDN}`)"
+      entryPoints:
+        - websecure
+      service: uptime-kuma
+      middlewares:
+        - secure-headers
+        - error-pages
+      tls: {}
+
+  services:
+    uptime-kuma:
+      loadBalancer:
+        servers:
+          - url: "http://uptime-kuma:3001"

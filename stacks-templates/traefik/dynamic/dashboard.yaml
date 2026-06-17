@@ -9,12 +9,3 @@ http:
         - secure-headers
         - error-pages
       tls: {}
-
-    traefik-dashboard-ip:
-      rule: "PathPrefix(`/`)"
-      entryPoints:
-        - dashboard
-      service: api@internal
-      middlewares:
-        - secure-headers
-        - error-pages

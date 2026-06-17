@@ -1,0 +1,17 @@
+http:
+  routers:
+    dozzle:
+      rule: "Host(`dozzle.${FQDN}`)"
+      entryPoints:
+        - websecure
+      service: dozzle
+      middlewares:
+        - secure-headers
+        - error-pages
+      tls: {}
+
+  services:
+    dozzle:
+      loadBalancer:
+        servers:
+          - url: "http://dozzle:8080"
