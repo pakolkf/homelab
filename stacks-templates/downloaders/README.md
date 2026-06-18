@@ -1,25 +1,8 @@
 # downloaders
 
-Clientes P2P: **qui** (UI de qBittorrent) · **qBittorrent** · **transmission** · **aMule**,
-más **amarr** (conector Torznab de aMule para los *arr). Todos en `homelab_web`
-(las WebUI se exponen vía Traefik; routers en `traefik/dynamic/`).
-
-## amarr (aMule -> Servarr)
-
-**No tiene WebUI** (por eso no se le pone router de Traefik ni puerto publicado):
-solo expone endpoints Torznab en `:8080`, consumidos por red. Se conecta a aMule
-por **EC** (`amule:4712`) con `AMULE_PASSWORD` = la **Remote GUI** de aMule
-(`GUI_PWD`), **no** la de la WebUI.
-
-Se añade **directamente en los *arr** (NO en Prowlarr — no es compatible):
-- **Indexador Torznab → solo en Sonarr** → `http://amarr:8080/indexer/amule`
-  (en **Radarr NO**: el soporte de categorías es solo de Sonarr; añadirlo como
-  indexador en Radarr le rompe el frontend `getValidationFailures.reduce`).
-- Download client (Sonarr/Radarr) → `http://amarr:8080`
-
-`AMULE_FINISHED_PATH` (`/finished`) se monta sobre la carpeta `incoming` de aMule
-para que los *arr importen lo terminado. Verifica la conexión con `docker logs amarr`
-(si da error de auth → `AMULE_PASSWORD` ≠ `GUI_PWD` real).
+Clientes P2P: **qBittorrent** · **transmission** · **aMule** + **amutorrent**
+(frontend unificado que se integra con los *arr y aMule por EC). Todos en
+`homelab_web`; las WebUI se exponen vía Traefik (routers en `traefik/dynamic/`).
 
 ## Ajustes recomendados (se aplican DENTRO de cada app)
 
@@ -34,11 +17,16 @@ ajustes una vez, **con el contenedor parado**:
 | `encryption` | `2` | requerir cifrado (privacidad / anti-throttling) |
 | `watch-dir-enabled` | `false` | `/watch` no se monta; evita el error de inotify |
 | `cache-size-mb` | `64` | subir de `4`; mejor E/S, sobre todo si `MEDIA_DIR` es NAS |
+| `port-forwarding-enabled` | `false` | UPnP off; Docker ya publica `51413` |
+| `ratio-limit` | `2.0` | seedear hasta ratio 2 antes de parar |
+| `ratio-limit-enabled` | `true` | activa el tope anterior |
 
 ### qBittorrent — `/config/qBittorrent/qBittorrent.conf`, sección `[BitTorrent]`
 | Clave | Valor | Motivo |
 | --- | --- | --- |
 | `Session\Encryption` | `1` | requerir cifrado |
+| `Session\GlobalMaxRatio` | `2.0` | tope de ratio (con `0` se para al instante de terminar) |
+| `Session\MaxRatioAction` | `0` | `0` = pausar al alcanzar ratio (no borrar) |
 
 ## Contraseñas
 Ver `.env.example`. Resumen: **transmission** mantiene `USER`/`PASS` en el `.env`
@@ -52,10 +40,34 @@ Para buena velocidad, reenvía en el router hacia el host (P2P entrantes):
 - transmission: `51413` TCP+UDP
 - aMule: `4662` TCP + `4672` UDP (si no, LowID)
 
-## Limitación por horario
-El scheduler de qBittorrent/transmission (límite en horario laboral) es
-**intencional**, no un fallo.
+## Limitación por horario (scheduler de ancho de banda)
 
-## VPN (pendiente)
-Patrón previsto a futuro: **gluetun** + clientes vía `network_mode: service:gluetun`
-con kill-switch (sin fugas de IP si cae la VPN).
+**Ambos clientes traen activo un *scheduler* que reduce el BW en horario laboral
+Lun-Vie 07:00–18:00.** Es intencional, no un fallo. Mecánica:
+
+### qBittorrent — `qBittorrent.conf`, sección `[BitTorrent]` + `[Preferences]`
+| Clave | Valor actual | Significado |
+| --- | --- | --- |
+| `Session\BandwidthSchedulerEnabled` | `true` | activa el scheduler |
+| `Session\AlternativeGlobalDLSpeedLimit` | `48828` | límite **descarga** en KB/s mientras está activa la franja (≈48 MB/s) |
+| `Session\AlternativeGlobalUPSpeedLimit` | `48828` | límite **subida** en KB/s en franja |
+| `Session\UseAlternativeGlobalSpeedLimit` | `true` | ⚠️ **fuerza el modo "alt-speed" SIEMPRE**, ignorando el scheduler. Si quieres que el scheduler decida, ponlo a `false`. |
+| `Scheduler\days` | `Weekday` | días activos (`Weekday` = Lun-Vie; otras: `Everyday`, `Weekend`, `MonTuesWedThursFri`, días sueltos) |
+| `Scheduler\start_time` / `Scheduler\end_time` | binario Qt-encoded | horario; se edita más cómodo desde la WebUI (Tools → Options → Speed → Scheduler) |
+
+> Para **quitar** el scheduler en qBittorrent: pon `Session\BandwidthSchedulerEnabled=false` **y** `Session\UseAlternativeGlobalSpeedLimit=false`.
+
+### transmission — `/config/settings.json`
+| Clave | Valor actual | Significado |
+| --- | --- | --- |
+| `alt-speed-time-enabled` | `true` | activa el scheduler de "alt-speed" |
+| `alt-speed-time-begin` | `420` | inicio en minutos desde 00:00 → `420` = **07:00** |
+| `alt-speed-time-end` | `1080` | fin en minutos → `1080` = **18:00** |
+| `alt-speed-time-day` | `62` | bitmask de días. `62` = Lun-Vie (`SUN=1, MON=2, TUE=4, WED=8, THU=16, FRI=32, SAT=64`; `2+4+8+16+32=62`). `127` = todos los días, `65` = sólo fin de semana. |
+| `alt-speed-down` | `40000` | descarga en KB/s durante la franja (≈40 MB/s) |
+| `alt-speed-up` | `40000` | subida en KB/s durante la franja |
+| `alt-speed-enabled` | `false` | si lo pones `true`, fuerza alt-speed SIEMPRE (ignora el scheduler) — equivalente al `UseAlternativeGlobalSpeedLimit` de qBittorrent |
+
+> Para **quitar** el scheduler en transmission: pon `alt-speed-time-enabled=false`. Para desactivar también el modo manual: `alt-speed-enabled=false`.
+
+> Importante: edita estos valores con **el contenedor parado** (ambas apps reescriben su conf al salir). `docker stop <svc>` → editar → `docker start <svc>`.

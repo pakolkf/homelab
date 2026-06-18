@@ -14,4 +14,4 @@ http:
     qbittorrent:
       loadBalancer:
         servers:
-          - url: "http://qbittorrent:8090"
+          - url: "http://qbittorrent:8080"

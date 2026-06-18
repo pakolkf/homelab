@@ -1,95 +1,103 @@
 services:
-  qui:
-    image: ghcr.io/autobrr/qui:latest
-    container_name: qui
-    hostname: qui
-    restart: unless-stopped
-    env_file:
-      - /opt/homelab/docker/.env
-      - .env
-    ports:
-      - 7476:7476
-    volumes:
-      - ${APPDATA_DIR}/qui/config:/config
-    networks:
-      - homelab_web
-
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
     container_name: qbittorrent
     hostname: qbittorrent
-    restart: unless-stopped
     stop_grace_period: "10s"
+    restart: unless-stopped
     env_file:
       - /opt/homelab/docker/.env
       - .env
-    ports:
-      - 8090:8090          # WebUI (= WEBUI_PORT)
-      - 6881:6881          # P2P (debe estar publicado para conexiones entrantes)
-      - 6881:6881/udp
     volumes:
       - ${APPDATA_DIR}/qbittorrent/config:/config
-      - ${MEDIA_DIR}/downloads/torrents:/downloads
+      - ${MEDIA_DIR}:/data_arr
+    ports:
+      - 6881:6881
+      - 6881:6881/udp
     networks:
       - homelab_web
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/ -o /dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   transmission:
     image: lscr.io/linuxserver/transmission:latest
     container_name: transmission
     hostname: transmission
     restart: unless-stopped
-    stop_grace_period: "10s"
     env_file:
       - /opt/homelab/docker/.env
       - .env
-    ports:
-      - 9091:9091          # WebUI/RPC
-      - 51413:51413        # P2P (entrantes)
-      - 51413:51413/udp
     volumes:
       - ${APPDATA_DIR}/transmission/config:/config
-      - ${MEDIA_DIR}/downloads/torrents:/downloads
+      - ${MEDIA_DIR}:/data_arr
+    ports:
+      - 51413:51413
+      - 51413:51413/udp
     networks:
       - homelab_web
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sS -o /dev/null -w '%{http_code}' http://localhost:9091/transmission/web/ | grep -qE '^(200|401|409)$'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   amule:
-    image: ngosang/amule:latest
+    image: ngosang/amule
     container_name: amule
     hostname: amule
+    stop_grace_period: "30s"
     restart: unless-stopped
     env_file:
       - /opt/homelab/docker/.env
       - .env
     ports:
-      - 4711:4711          # WebUI
-      - 4712:4712          # remote GUI / EC
-      - 4662:4662          # ed2k TCP (entrantes)
-      - 4665:4665/udp      # ed2k global search UDP
-      - 4672:4672/udp      # ed2k UDP
+      - 4662:4662
+      - 4665:4665/udp
+      - 4672:4672/udp
     volumes:
       - ${APPDATA_DIR}/amule/config:/home/amule/.aMule
-      - ${MEDIA_DIR}/downloads/amule:/downloads
+      - ${MEDIA_DIR}:/data_arr
     networks:
       - homelab_web
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep amuled >/dev/null && grep -q ':1268 .* 0A ' /proc/net/tcp"]
+      interval: 15s
+      timeout: 3s
+      retries: 6
+      start_period: 45s
 
-  # Conector Torznab que expone aMule como indexador/cliente. Se añade DIRECTO en
-  # Sonarr/Radarr (no es compatible con Prowlarr). NO tiene WebUI: se consume por
-  # red (http://amarr:8080). Conecta a aMule por EC (4712), AMULE_PASSWORD = GUI_PWD.
-  amarr:
-    image: vexdev/amarr:latest
-    container_name: amarr
-    hostname: amarr
+  amutorrent:
+    image: g0t3nks/amutorrent:latest
+    container_name: amutorrent
+    hostname: amutorrent
     restart: unless-stopped
     env_file:
       - /opt/homelab/docker/.env
       - .env
     volumes:
-      - ${APPDATA_DIR}/amarr/config:/config
-      - ${MEDIA_DIR}/downloads/amule/incoming:/finished
+      - ${APPDATA_DIR}/amutorrent/logs:/usr/src/app/server/logs
+      - ${APPDATA_DIR}/amutorrent/config:/usr/src/app/server/data
+      - ${APPDATA_DIR}/amule:/home/amule
+      - ${MEDIA_DIR}:/data_arr
     networks:
       - homelab_web
     depends_on:
-      - amule
+      amule:
+        condition: service_healthy
+      qbittorrent:
+        condition: service_healthy
+      transmission:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:' + (process.env.PORT || 4000) + '/health', r => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
 networks:
   homelab_web:

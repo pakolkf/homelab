@@ -86,7 +86,7 @@ volumes:
 │   ├── authentik/               SSO / proveedor de identidad
 │   ├── beszel/                  Monitorización ligera
 │   ├── cloudflare/              Cloudflare Tunnel + companion para Traefik
-│   ├── downloaders/            qui + qbittorrent + transmission + amule (clientes P2P)
+│   ├── downloaders/            qbittorrent + transmission + amule + amutorrent (clientes P2P)
 │   ├── dozzle/                  Logs de contenedores en vivo
 │   ├── duplicati/               Backups
 │   ├── filebrowser/             Explorador de ficheros web
@@ -337,12 +337,10 @@ Convención de la columna **Puerto host**:
 | indexers · flaresolverr | `ghcr.io/flaresolverr/flaresolverr` | — (interno 8191) | Resolutor de retos Cloudflare para los indexadores |
 | indexers · jackett | `lscr.io/linuxserver/jackett` | — | Indexador de torrents/usenet |
 | indexers · prowlarr | `lscr.io/linuxserver/prowlarr` | — | Gestor de indexadores (integra con *arr) |
-| downloaders · qui | `ghcr.io/autobrr/qui` | — | WebUI para gestionar qBittorrent |
 | downloaders · qbittorrent | `lscr.io/linuxserver/qbittorrent` | 6881/tcp+udp | Cliente BitTorrent (UI vía Traefik; TCP/UDP para peers) |
 | downloaders · transmission | `lscr.io/linuxserver/transmission` | 51413/tcp+udp | Cliente BitTorrent (UI vía Traefik; TCP/UDP para peers) |
 | downloaders · amule | `ngosang/amule` | 4662/tcp, 4665/udp, 4672/udp | Cliente ED2K/Kademlia (UI vía Traefik; TCP/UDP para la red eD2K) |
 | downloaders · amutorrent | `g0t3nks/amutorrent` | — | Frontend unificado para los clientes |
-| downloaders · amarr | `vexdev/amarr` | — (interno 8080) | Conector Torznab de aMule (directo en Sonarr/Radarr, no Prowlarr) |
 | tailscale | `tailscale/tailscale` | host network | VPN mesh |
 | authentik | `ghcr.io/goauthentik/server` | 9000, 9443 *(rescate)* | SSO / proveedor de identidad |
 | cloudflare-tunnels | `cloudflare/cloudflared` | — | Túnel Cloudflare |
