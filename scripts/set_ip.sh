@@ -2,8 +2,8 @@
 
 # Configuración — ajusta estos valores
 INTERFACE="eth0"
-STATIC_IP="192.168.1.100/24"
-GATEWAY="192.168.1.1"
+STATIC_IP="10.55.0.20/24"
+GATEWAY="10.55.0.1"
 NETPLAN_FILE="/etc/netplan/50-cloud-init.yaml"
 
 # ─────────────────────────────────────────
