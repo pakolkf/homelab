@@ -9,7 +9,13 @@ services:
       - .env
     networks:
       - indexers
-
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8191/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+               
   jackett:
     image: lscr.io/linuxserver/jackett:latest
     container_name: jackett
@@ -25,7 +31,7 @@ services:
       - indexers
       - homelab_web
     depends_on:
-      - flaresolverr
+      flaresolverr: {condition: service_healthy}
 
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
@@ -42,7 +48,7 @@ services:
       - indexers
       - homelab_web
     depends_on:
-      - flaresolverr
+      flaresolverr: {condition: service_healthy}
 
 networks:
   homelab_web:
