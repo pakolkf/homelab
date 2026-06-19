@@ -1,0 +1,17 @@
+http:
+  routers:
+    sonarr:
+      rule: "Host(`sonarr.${FQDN}`)"
+      entryPoints:
+        - websecure
+      service: sonarr
+      middlewares:
+        - secure-headers
+        - error-pages
+      tls: {}
+
+  services:
+    sonarr:
+      loadBalancer:
+        servers:
+          - url: "http://sonarr:8989"

@@ -1,0 +1,34 @@
+services:
+  radarr:
+    image: ghcr.io/linuxserver/radarr:latest
+    container_name: radarr
+    hostname: radarr
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - .env
+    volumes:
+      - ${APPDATA_DIR}/radarr/config:/config
+      - ${APPDATA_DIR}/radarr/backup:/backup
+      - ${MEDIA_DIR}:/data_arr
+    networks:
+      - homelab_web
+
+  sonarr:
+    image: ghcr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    hostname: sonarr
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - .env
+    volumes:
+      - ${APPDATA_DIR}/sonarr/config:/config
+      - ${APPDATA_DIR}/sonarr/backup:/backup
+      - ${MEDIA_DIR}:/data_arr
+    networks:
+      - homelab_web
+
+networks:
+  homelab_web:
+    external: true

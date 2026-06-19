@@ -1,0 +1,17 @@
+http:
+  routers:
+    radarr:
+      rule: "Host(`radarr.${FQDN}`)"
+      entryPoints:
+        - websecure
+      service: radarr
+      middlewares:
+        - secure-headers
+        - error-pages
+      tls: {}
+
+  services:
+    radarr:
+      loadBalancer:
+        servers:
+          - url: "http://radarr:7878"
