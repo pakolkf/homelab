@@ -79,7 +79,7 @@ volumes:
 ```
 .
 ├── docker/                      Bootstrap por terminal (solo estos)
-│   ├── .env                     Variables del host (PUID/PGID/TZ/APPDATA/STACKS_BASE…)
+│   ├── .env                     Variables del host (PUID/PGID/TZ/FQDN/ACME_EMAIL)
 │   ├── hawser/                  Agente de escritura de dockhand (socket rw + STACKS_DIR)
 │   └── dockhand/                Gestor visual de stacks
 ├── stacks-templates/            Recetas de los stacks que gestiona dockhand

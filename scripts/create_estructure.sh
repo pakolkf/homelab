@@ -58,10 +58,6 @@ PGID=${PGID}
 TZ=${TZ}
 FQDN=example.com
 ACME_EMAIL=admin@example.com
-HOMELAB_BASE=${HOMELAB_BASE}
-DOCKER_BASE=${DOCKER_BASE}
-STACKS_BASE=${STACKS_BASE}
-APPDATA=${APPDATA}
 EOF
 
   chown root:root "${ENV_FILE}"
