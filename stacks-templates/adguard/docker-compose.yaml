@@ -8,9 +8,9 @@ services:
       - /opt/homelab/docker/.env
       - .env
     ports:
-      - "53:53/tcp"
-      - "53:53/udp"
-      - "8054:80/tcp"
+      - 53:53/tcp
+      - 53:53/udp
+      - 8053:80/tcp
     volumes:
       - ${APPDATA_DIR}/work:/opt/adguardhome/work
       - ${APPDATA_DIR}/conf:/opt/adguardhome/conf

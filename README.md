@@ -41,16 +41,16 @@ Docker y Docker Compose **no** son requisitos previos: los instala `scripts/inst
 
 **Solo `hawser` y `dockhand` se instalan por terminal** (`docker compose up`, tras el bootstrap del host). El resto de servicios se instalan y configuran **desde la UI de dockhand**, que los gestiona como stacks y los ejecuta a través del agente `hawser`.
 
-Tres árboles en el host:
+Árboles en el host:
 
 | Ruta | Qué contiene | Quién la gestiona |
 | --- | --- | --- |
 | `/opt/homelab/docker/` | Bootstrap: `hawser`, `dockhand` y el `.env` del host | Tú, por terminal |
-| `/opt/homelab/stacks/<stack>/` | Runtime de **hawser** de este host (los compose que ejecuta) | hawser (`STACKS_DIR`) |
-| `/opt/homelab/appdata/dockhand/stacks/{env}/{stack}/` | Copia central de los stacks de **todos** los environments | dockhand (interno, estructura impuesta) |
+| `/opt/homelab/stacks/{env}/{stack}/` | Composes gestionados por dockhand y ejecutados por hawser (single source of truth) | dockhand (escribe) + hawser (ejecuta, `STACKS_DIR`) |
+| `/opt/homelab/appdata/dockhand/` | BD interna + clave de cifrado de dockhand (raíz de `/app/data`) | dockhand (interno) |
 | `/opt/homelab/appdata/<svc>/` | Config + datos de cada servicio | `sync_appdata.sh` (config) + runtime (datos) |
 
-- **Recetas en el repo:** las plantillas viven en `stacks-templates/<svc>/` y son la fuente para crear los stacks en dockhand. Al desplegar, dockhand guarda la **copia central** en `/opt/homelab/appdata/dockhand/stacks/{env}/{stack}/` (todos los environments, su almacén interno) y **hawser** escribe/ejecuta el **runtime** en su `STACKS_DIR` = `/opt/homelab/stacks/<stack>/` (plano, por host). Los stacks de Git van a `/opt/homelab/appdata/dockhand/git-repos/{env}/{stack}/`.
+- **Recetas en el repo:** las plantillas viven en `stacks-templates/<svc>/` y son la fuente para crear los stacks en dockhand. Al desplegar, dockhand escribe la receta en `/opt/homelab/stacks/{env}/{stack}/compose.yaml`; **hawser** la ejecuta directamente desde ahí. Ambos comparten el dir vía bind-mount **same-path** en sus respectivos compose (`/opt/homelab/stacks:/opt/homelab/stacks`), de modo que la ruta dentro del contenedor coincide con la del host y no hay traducción ni copia plana intermedia. `STACKS_DIR=/opt/homelab/stacks` para hawser; dockhand está configurado por su BD/UI interna para usar esa misma ruta.
 - **Datos y config en appdata:** los volúmenes apuntan a `${APPDATA_DIR}` (= `/opt/homelab/appdata/<svc>`, ruta absoluta). La config versionada (p.ej. `traefik.yaml`, `dynamic/`, `unbound.conf`, `AdGuardHome.yaml`) la copia ahí `scripts/sync_appdata.sh` desde el repo, porque dockhand solo escribe el `compose`. Al copiarla, `sync_appdata.sh` **renderiza** `${FQDN}` y `${ACME_EMAIL}` con los valores del `.env` del host, así el repo nunca contiene el dominio ni el email reales.
 - **Rescate sin UI:** si dockhand cae, basta SSH al host y `docker compose` a mano sobre la receta en `/opt/homelab/stacks/...` (o copiar lo que haga falta a `appdata`).
 
@@ -117,7 +117,7 @@ volumes:
     └── create_docker_network.sh Crea las 3 redes externas del homelab
 ```
 
-En tiempo de ejecución, el host además tiene `/opt/homelab/stacks/` (runtime que ejecuta hawser en este host) y `/opt/homelab/appdata/` (config + datos), que **no** están en el repo. Las copias centrales de las recetas (todos los environments) viven en `/opt/homelab/appdata/dockhand/stacks/`.
+En tiempo de ejecución, el host además tiene `/opt/homelab/stacks/{env}/{stack}/` (composes de dockhand que ejecuta hawser) y `/opt/homelab/appdata/` (config + datos por servicio, más BD interna de dockhand). Esos árboles **no** están en el repo.
 
 ---
 
@@ -146,7 +146,7 @@ En tiempo de ejecución, el host además tiene `/opt/homelab/stacks/` (runtime q
    ```
 
    - `hawser/.env`: `PORT=2376`, `STACKS_DIR=/opt/homelab/stacks`, `TOKEN=<token>` (genéralo con `openssl rand -base64 32`).
-   - `dockhand/.env`: `HOST_DATA_DIR=/opt/homelab/appdata/dockhand` (dónde está su `/app/data`). Ya no usa `STACK_DIR`.
+   - `dockhand/.env`: `HOST_DATA_DIR=/opt/homelab/appdata/dockhand` (raíz de `/app/data` en el host: BD + clave de cifrado). El dir de stacks (`/opt/homelab/stacks`) lo expone el compose como bind-mount same-path; dockhand lo usa según su BD/UI. `STACK_DIR` está obsoleto, no añadirlo.
    - `docker/.env` (ya lo generó `init.sh` con tus `PUID`/`PGID` reales — el rsync no lo toca): edita `FQDN` y `ACME_EMAIL` y reejecuta `sudo ./scripts/sync_appdata.sh` para renderizar la config.
 
 4. Levanta `hawser` y `dockhand` por terminal:
@@ -156,7 +156,7 @@ En tiempo de ejecución, el host además tiene `/opt/homelab/stacks/` (runtime q
    cd /opt/homelab/docker/dockhand && docker compose up -d
    ```
 
-5. Entra en dockhand (`http://<IP_LAN>:8085`) y:
+5. Entra en dockhand (`http://<IP_LAN>:3000`) y:
    - Registra el host: **Settings → Environments → Add** → *Hawser*, URL `http://hawser:2376`, con el `TOKEN` de `hawser/.env`.
    - Crea cada stack a partir de su receta en `stacks-templates/<svc>/`, definiendo en el `.env` del stack `APPDATA_DIR=/opt/homelab/appdata/<svc>` y sus secretos.
    - Orden recomendado: `socket-proxy` → `unbound` → `adguard` → `traefik` (+ `error-pages`) → resto.
@@ -208,7 +208,7 @@ Para sumar otro host (p.ej. `pve01`, `raspi01`) que ejecute stacks gestionados d
    - URL: `http://<IP-de-este-host>:2376` (IP LAN o Tailscale)
    - Token: el `TOKEN` de `hawser/.env` de este host.
 
-5. Crea/despliega stacks en ese environment desde la UI. El **runtime** irá a `/opt/homelab/stacks/<stack>/` **en este host**; la **copia central** queda en el dockhand principal (`/opt/homelab/appdata/dockhand/stacks/{env}/{stack}/`).
+5. Crea/despliega stacks en ese environment desde la UI. El compose se escribe en `/opt/homelab/stacks/{env}/{stack}/compose.yaml` **en este host** y hawser lo ejecuta desde ahí (sin copia adicional; dockhand y hawser comparten esa ruta vía bind-mount same-path en sus respectivos compose).
 
 ---
 
@@ -227,7 +227,7 @@ Las redes Docker (`homelab_web`, etc.) son **locales a cada host**: un contenedo
          entryPoints: [websecure]
          service: vaultwarden
          middlewares: [secure-headers, error-pages]
-         tls: { certResolver: cloudflare }
+         tls: { }
      services:
        vaultwarden:
          loadBalancer:
@@ -307,7 +307,7 @@ Bootstrap (por terminal):
 | Stack | Imagen | Puerto host | Función |
 | --- | --- | --- | --- |
 | hawser | `ghcr.io/finsys/hawser` | — (interno 2376) | Agente de escritura de dockhand (socket rw) |
-| dockhand | `fnsys/dockhand` | 8085 | Gestor visual de stacks |
+| dockhand | `fnsys/dockhand` | 3000 | Gestor visual de stacks |
 
 Gestionados por dockhand:
 
@@ -316,7 +316,7 @@ Convención de la columna **Puerto host**:
 - `80, 443` → entrypoints de Traefik.
 - `53/tcp+udp` (AdGuard) → servicio DNS para los clientes LAN.
 - `51820/udp` (WireGuard), `6881`, `51413`, `4662/4665/4672` → tráfico P2P o de VPN externo, **no** UI.
-- `8054`, `9000/9443` → acceso LAN directo de **rescate** (cuando DNS/Traefik no responden). Quítalos si no los necesitas.
+- `8053`, `9000/9443` → acceso LAN directo de **rescate** (cuando DNS/Traefik no responden). Quítalos si no los necesitas.
 
 | Stack | Imagen | Puerto host | Función |
 | --- | --- | --- | --- |
@@ -324,7 +324,7 @@ Convención de la columna **Puerto host**:
 | error-pages | `tarampampam/error-pages` | — | Páginas de error personalizadas |
 | socket-proxy | `lscr.io/linuxserver/socket-proxy` | — (interno 2375, read-only) | Acceso de solo lectura al socket Docker |
 | unbound | `klutchell/unbound` | — (interno 5335) | DNS recursivo con DNSSEC |
-| adguard | `adguard/adguardhome` | 53/tcp+udp, 8054 *(rescate)* | DNS con filtrado de anuncios |
+| adguard | `adguard/adguardhome` | 53/tcp+udp, 8053 *(rescate)* | DNS con filtrado de anuncios |
 | homarr | `ghcr.io/homarr-labs/homarr` | — | Dashboard del homelab |
 | dozzle | `amir20/dozzle` | — | Logs en vivo de contenedores |
 | beszel | `henrygd/beszel` | — | Métricas de servidores |
@@ -626,7 +626,7 @@ Tras arrancar el stack `cloudflare`, revisa los logs de `cloudflare-tunnels` y `
 
 ## Operación habitual
 
-- **Servicios gestionados por dockhand:** opéralos desde la UI (deploy, logs, restart, update). El runtime vive en `/opt/homelab/stacks/<stack>/` (hawser) y la copia central en `/opt/homelab/appdata/dockhand/stacks/{env}/{stack}/`.
+- **Servicios gestionados por dockhand:** opéralos desde la UI (deploy, logs, restart, update). El compose vive en `/opt/homelab/stacks/{env}/{stack}/compose.yaml` (mismo dir para dockhand y hawser).
 - **Bootstrap (`hawser`, `dockhand`):** por terminal.
 
   ```bash
@@ -682,7 +682,7 @@ Logs de Traefik (acceso y servicio) en `/opt/homelab/appdata/traefik/logs/`.
 - **Firewall del host (UFW)**: lo activa `scripts/enable_firewall.sh` (lo lanza `init.sh`). Política `default deny incoming` + `default allow outgoing`, con tres reglas:
   - `22/tcp` — **SSH (imprescindible también para acceso local en LAN)**. Sin esta regla pierdes la sesión SSH al hacer `ufw enable`, por eso el script la añade **antes** de habilitar UFW.
   - `80/tcp`, `443/tcp` — Traefik (HTTP/HTTPS).
-  - Los puertos publicados por contenedores Docker (p.ej. `8085` de dockhand, `53`/`8054` de AdGuard, `9000` de Authentik) **no** los filtra UFW: Docker inyecta sus propias reglas en `iptables` antes del `INPUT` de UFW. Para bloquearlos no se publican al host (o se publican en `127.0.0.1`).
+  - Los puertos publicados por contenedores Docker (p.ej. `3000` de dockhand, `53`/`8053` de AdGuard, `9000` de Authentik) **no** los filtra UFW: Docker inyecta sus propias reglas en `iptables` antes del `INPUT` de UFW. Para bloquearlos no se publican al host (o se publican en `127.0.0.1`).
 - Acceso al socket Docker: lectura vía `socket-proxy-ro`; escritura solo por `hawser` (con token), único contenedor con el socket crudo.
 - Cabeceras HTTPS endurecidas vía middleware `secure-headers` de Traefik (HSTS, CSP, frame-deny, etc.).
 

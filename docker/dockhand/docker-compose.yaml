@@ -8,9 +8,10 @@ services:
       - /opt/homelab/docker/.env
       - /opt/homelab/docker/dockhand/.env
     ports:
-      - "8085:3000"
+      - 3000:3000
     volumes:
       - /opt/homelab/appdata/dockhand:/app/data
+      - /opt/homelab/stacks:/opt/homelab/stacks
     networks:
       - homelab_web
       - homelab_socket
