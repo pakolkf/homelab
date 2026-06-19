@@ -19,6 +19,7 @@ La gestión es **dockhand-first**: por terminal solo se instalan `hawser` y `doc
 - [Authentik — SSO y autenticación centralizada](#authentik--sso-y-autenticación-centralizada)
 - [Configuración previa en Cloudflare](#configuración-previa-en-cloudflare)
 - [Operación habitual](#operación-habitual)
+- [Desplegar un stack desde la UI de dockhand](#desplegar-un-stack-desde-la-ui-de-dockhand)
 - [Añadir un servicio nuevo](#añadir-un-servicio-nuevo)
 - [Seguridad y permisos](#seguridad-y-permisos)
 - [Tareas programadas (cron)](#tareas-programadas-cron)
@@ -643,6 +644,74 @@ Tras arrancar el stack `cloudflare`, revisa los logs de `cloudflare-tunnels` y `
 - **Dominio o email ACME:** edita `/opt/homelab/docker/.env` (`FQDN`, `ACME_EMAIL`) y reejecuta `sudo ./scripts/sync_appdata.sh`.
 
 Logs de Traefik (acceso y servicio) en `/opt/homelab/appdata/traefik/logs/`.
+
+---
+
+## Desplegar un stack desde la UI de dockhand
+
+Flujo para llevar una receta de `stacks-templates/<svc>/` a un contenedor corriendo en el host. Diferente a [Añadir un servicio nuevo](#añadir-un-servicio-nuevo): aquí no se crea receta nueva, solo se despliega una existente.
+
+### 0. Pre-requisitos (una vez tras instalar dockhand)
+
+Algunos stacks (`traefik`, `unbound`, `adguard`) montan ficheros de config versionados que **deben existir** en `/opt/homelab/appdata/<svc>/` antes del primer arranque:
+
+```bash
+sudo /ruta/al/repo/scripts/sync_appdata.sh
+```
+
+`sync_appdata.sh` copia los ficheros versionados de `stacks-templates/` a `appdata/` renderizando `${FQDN}` y `${ACME_EMAIL}` con los valores del `.env` global del host.
+
+### 1. Crear el stack en dockhand
+
+UI de dockhand (`http://<IP>:3000` la primera vez; tras Traefik+AdGuard, también vía `https://dockhand.${FQDN}`).
+
+**Stacks → Create:**
+
+- **Environment**: el que tengas configurado (p. ej. `main`).
+- **Name**: usa el nombre del template (`traefik`, `adguard`, `homarr`…). dockhand escribirá el compose en `/opt/homelab/stacks/<env>/<name>/compose.yaml`.
+- **Source**: editor web (pega el compose) o **Git** (si lo tienes en un repo).
+
+### 2. Pegar el compose
+
+Contenido literal de `stacks-templates/<svc>/docker-compose.yaml`. No hace falta tocar nada — usa `${APPDATA_DIR}` y `${...}` que se resuelven en el `.env` del stack del paso siguiente.
+
+### 3. Definir el `.env` del stack
+
+En la pestaña *Environment* / *Variables* de dockhand. Copia el contenido de `stacks-templates/<svc>/.env.example` y rellena:
+
+- `APPDATA_DIR=/opt/homelab/appdata/<svc>` — ruta absoluta donde el stack guarda config y datos.
+
+  > Excepción: `downloaders` usa `APPDATA_DIR=/opt/homelab/appdata` porque agrupa varios clientes (`qbittorrent/`, `transmission/`, `amule/`, `amutorrent/`) como subdirs.
+
+- Secretos / tokens / contraseñas del stack. Los valores de muestra en `.env.example` son placeholders (`changeme`) o tokens de ejemplo; **sustitúyelos**.
+
+### 4. Deploy
+
+Pulsa **Deploy**. dockhand le pide a `hawser` que ejecute `docker compose up -d` sobre `/opt/homelab/stacks/<env>/<svc>/compose.yaml`.
+
+### 5. Orden recomendado al desplegar el homelab por primera vez
+
+Para que no fallen dependencias (DNS, TLS, SSO):
+
+1. `socket-proxy`
+2. `unbound`
+3. `adguard`
+4. `traefik` (+ `error-pages`)
+5. `cloudflare` (si lo usas)
+6. `authentik` (si quieres SSO antes de exponer apps)
+7. Resto (`homarr`, `vaultwarden`, `downloaders`, `indexers`, `dozzle`, `beszel`, `uptime-kuma`, `nutify`, `duplicati`, `filebrowser`, `wgdashboard`, `tailscale`).
+
+### 6. Verificación post-deploy
+
+- Dockhand → stack → **Logs**: revisa que el contenedor arranca sin errores.
+- Dockhand → stack → **Status**: contenedores `Running` (y `Healthy` si tienen `healthcheck`).
+- Acceso por FQDN: `https://<svc>.${FQDN}` (necesita AdGuard con su rewrite, Traefik corriendo y certificado emitido).
+
+### 7. Operaciones habituales sobre un stack
+
+- **Cambiar variables**: dockhand UI → stack → *Environment* → editar → *Redeploy*.
+- **Actualizar imagen**: dockhand UI → stack → *Pull* + *Redeploy*.
+- **Rescate sin UI** (si dockhand cae): SSH al host y `cd /opt/homelab/stacks/<env>/<svc> && docker compose up -d`. El compose vive ahí mismo.
 
 ---
 
