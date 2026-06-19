@@ -37,6 +37,7 @@ services:
       - .env
     volumes:
       - ${APPDATA_DIR}/prowlarr/config:/config
+      - ${APPDATA_DIR}/prowlarr/backup:/backup
     networks:
       - indexers
       - homelab_web
