@@ -1,0 +1,17 @@
+http:
+  routers:
+    adguard:
+      rule: "Host(`adguard.${FQDN}`)"
+      entryPoints:
+        - websecure
+      service: adguard
+      middlewares:
+        - secure-headers
+        - error-pages
+      tls: {}
+
+  services:
+    adguard:
+      loadBalancer:
+        servers:
+          - url: "http://adguard:80"
