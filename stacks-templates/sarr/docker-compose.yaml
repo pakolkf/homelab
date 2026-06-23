@@ -44,6 +44,20 @@ services:
     networks:
       - homelab_web
 
+  unpackerr:
+    image: ghcr.io/unpackerr/unpackerr:latest
+    container_name: unpackerr
+    hostname: unpackerr
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - .env
+    volumes:
+      - ${APPDATA_DIR}/unpackerr/config:/config
+      - ${MEDIA_DIR}:/data_arr
+    networks:
+      - homelab_web
+
   profilarr:
     image: ghcr.io/dictionarry-hub/profilarr:latest
     container_name: profilarr
