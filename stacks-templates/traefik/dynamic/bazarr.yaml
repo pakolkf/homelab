@@ -1,0 +1,17 @@
+http:
+  routers:
+    bazarr:
+      rule: "Host(`bazarr.${FQDN}`)"
+      entryPoints:
+        - websecure
+      service: bazarr
+      middlewares:
+        - secure-headers
+        - error-pages
+      tls: {}
+
+  services:
+    bazarr:
+      loadBalancer:
+        servers:
+          - url: "http://bazarr:6767"

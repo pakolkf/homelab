@@ -29,6 +29,21 @@ services:
     networks:
       - homelab_web
 
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    hostname: bazarr
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - .env
+    volumes:
+      - ${APPDATA_DIR}/bazarr/config:/config
+      - ${APPDATA_DIR}/bazarr/backup:/backup
+      - ${MEDIA_DIR}:/data_arr
+    networks:
+      - homelab_web
+
   profilarr:
     image: ghcr.io/dictionarry-hub/profilarr:latest
     container_name: profilarr
