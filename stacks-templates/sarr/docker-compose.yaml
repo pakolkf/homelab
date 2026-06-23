@@ -29,6 +29,41 @@ services:
     networks:
       - homelab_web
 
+  profilarr:
+    image: ghcr.io/dictionarry-hub/profilarr:latest
+    container_name: profilarr
+    hostname: profilarr
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - .env
+    environment:
+      - PARSER_HOST=profilarr-parser
+      - PARSER_PORT=5000
+      - ORIGIN=https://profilarr.${FQDN}
+    volumes:
+      - ${APPDATA_DIR}/profilarr/config:/config
+    networks:
+      - homelab_web
+      - profilarr_internal
+    depends_on:
+      profilarr-parser:
+        condition: service_healthy
+
+  profilarr-parser:
+    image: ghcr.io/dictionarry-hub/profilarr-parser:latest
+    container_name: profilarr-parser
+    hostname: profilarr-parser
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - .env
+    networks:
+      - profilarr_internal
+
 networks:
   homelab_web:
     external: true
+  profilarr_internal:
+    driver: bridge
+    internal: true

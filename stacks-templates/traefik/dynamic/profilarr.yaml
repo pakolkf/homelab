@@ -1,0 +1,17 @@
+http:
+  routers:
+    profilarr:
+      rule: "Host(`profilarr.${FQDN}`)"
+      entryPoints:
+        - websecure
+      service: profilarr
+      middlewares:
+        - secure-headers
+        - error-pages
+      tls: {}
+
+  services:
+    profilarr:
+      loadBalancer:
+        servers:
+          - url: "http://profilarr:6868"
