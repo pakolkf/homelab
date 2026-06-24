@@ -1,0 +1,17 @@
+http:
+  routers:
+    seerr:
+      rule: "Host(`seerr.${FQDN}`)"
+      entryPoints:
+        - websecure
+      service: seerr
+      middlewares:
+        - secure-headers
+        - error-pages
+      tls: {}
+
+  services:
+    seerr:
+      loadBalancer:
+        servers:
+          - url: "http://seerr:5055"
