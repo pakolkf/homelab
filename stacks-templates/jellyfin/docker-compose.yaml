@@ -1,0 +1,25 @@
+services:
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    hostname: jellyfin
+    restart: unless-stopped
+    env_file:
+      - /opt/homelab/docker/.env
+      - .env
+    volumes:
+      - ${APPDATA_DIR}/config:/config
+      - ${APPDATA_DIR}/cache:/cache
+      - ${MEDIA_DIR}:/data_arr
+    networks:
+      - homelab_web
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8096/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+networks:
+  homelab_web:
+    external: true
