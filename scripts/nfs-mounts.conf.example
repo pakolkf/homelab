@@ -12,6 +12,11 @@
 #
 # Si el fichero nfs-mounts.conf no existe, init.sh salta esta
 # fase sin error — útil para el host que SÍ aloja el storage.
+#
+# IMPORTANTE: borrar una línea de aquí NO desmonta nada. Para
+# retirar un mount existente:
+#   sudo ./umount_nfs.sh /opt/homelab/data_arr2
+# Luego ya puedes borrar la línea del conf.
 # ============================================================
 
 # Ejemplo: NAS exportando dos volúmenes a este host
