@@ -1,0 +1,19 @@
+# ============================================================
+# NFS mounts del host (LOCAL — copia este fichero como
+# nfs-mounts.conf en este mismo directorio si quieres montar
+# exports NFS desde init.sh).
+#
+# Una línea por montaje. Formato:
+#   <servidor>  <export>  <punto_montaje>
+#
+# Líneas que empiezan por '#' son comentarios. Líneas vacías OK.
+# Cada fila se pasa tal cual a mount_nfs.sh.
+# El punto_montaje es opcional (default: /opt/homelab/data_arr).
+#
+# Si el fichero nfs-mounts.conf no existe, init.sh salta esta
+# fase sin error — útil para el host que SÍ aloja el storage.
+# ============================================================
+
+# Ejemplo: NAS exportando dos volúmenes a este host
+# 10.0.0.50  /export/data_arr   /opt/homelab/data_arr
+# 10.0.0.50  /export/data_arr2  /opt/homelab/data_arr2

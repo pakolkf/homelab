@@ -17,6 +17,27 @@ cd "$SCRIPT_DIR"
 ./fix_unmask.sh
 ./create_estructure.sh
 ./fix_overcommit.sh
+
+# ------------------------------------------------------------
+# NFS mounts (opcional, local al host)
+# ------------------------------------------------------------
+# Si existe ./nfs-mounts.conf se procesa una línea por montaje.
+# Formato:  <servidor>  <export>  [punto_montaje]
+# Ver nfs-mounts.conf.example.
+NFS_CONF="${SCRIPT_DIR}/nfs-mounts.conf"
+if [[ -f "${NFS_CONF}" ]]; then
+    echo "→ Procesando NFS mounts desde ${NFS_CONF}"
+    while IFS= read -r line || [[ -n "${line}" ]]; do
+        line="${line%%#*}"
+        line="$(echo "${line}" | xargs)"
+        [[ -z "${line}" ]] && continue
+        # shellcheck disable=SC2086
+        ./mount_nfs.sh ${line} || echo "AVISO: mount NFS falló para: ${line}"
+    done < "${NFS_CONF}"
+else
+    echo "→ ${NFS_CONF} no presente — sin NFS mounts en este host."
+fi
+
 ./sync_appdata.sh
 ./fix_permissions.sh
 ./install_docker.sh

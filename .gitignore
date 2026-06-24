@@ -91,3 +91,9 @@ Thumbs.db
 
 # Notas internas para Claude Code (local, no versionado)
 CLAUDE.md
+
+# =========================================================
+# Config local de host (no se versiona)
+# =========================================================
+# Lista de montajes NFS por host — se versiona el .example.
+scripts/nfs-mounts.conf
