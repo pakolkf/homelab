@@ -131,6 +131,54 @@ lo mezcles con este.
 | `Repack1` / `Repack2` / `Repack3` (Dictionarry) | 5 / 6 / 7 |
 | `3D`, `Upscaled`, `Full Disc`, `Extras`, `TV Extras`, `Sing Along` (Dictionarry) | -10000 |
 
+### 5b. Perfil de respaldo `ES 1080p` (castellano obligatorio, VO preferida)
+
+Los trackers públicos españoles publican mucho **solo en castellano**, y con
+`ES+VO 1080p` esos títulos se quedan sin descargar. `ES 1080p` descarga la
+versión en castellano y la **sustituye sola** por la dual cuando aparece.
+
+La forma más rápida: *Quality Profiles → `ES+VO 1080p` → Clone* (si tu versión
+no tiene esa opción, créalo nuevo con los mismos valores) → nombre
+`ES 1080p`, y cambia **solo** esto:
+
+| Campo | `ES+VO 1080p` | `ES 1080p` |
+| --- | --- | --- |
+| Score `ES - Castellano` | 1000 | **1000** |
+| Score `VO - Original/Dual` | 1000 | **500** |
+| Minimum Custom Format Score | 2000 | **1000** |
+| Upgrade Until Custom Format Score | 2100 | **1600** |
+
+Calidades, Language = Any, el resto de puntuaciones (latino, VOSE, 3D, repacks…)
+y tamaños: **idénticos** a `ES+VO 1080p`.
+
+Por qué la VO baja a 500: así el castellano es lo único que llega al mínimo por
+sí solo. Si dejases VO en 1000 con mínimo 1000, un release **solo en inglés**
+también pasaría.
+
+| Release | Puntuación | Resultado |
+| --- | --- | --- |
+| Dual castellano + inglés | 1500 | ✅ descarga (o upgrade) |
+| Solo castellano | 1000 | ✅ descarga, queda pendiente de upgrade |
+| Solo inglés / solo VO | 500 | ❌ < 1000 |
+| Latino sin castellano / VOSE | ≤ -9500 | ❌ |
+| Película española en castellano | 1500 | ✅ (castellano = VO) |
+
+Con el upgrade activo, un fichero solo en castellano (1000) se reemplaza en
+cuanto aparezca uno dual (1500) en 1080p; el repack suma unos puntos, por eso el
+tope está en 1600 y no en 1500.
+
+**Cuándo usar cada uno:**
+
+- `ES+VO 1080p` → por defecto (Seerr, alta nueva). Solo descarga lo que cumple
+  tus dos requisitos.
+- `ES 1080p` → para títulos que lleven tiempo en *Wanted/Missing* sin aparecer
+  en dual (series de TV en abierto, películas pequeñas…). Cámbialo a mano en esa
+  película/serie, o desde el *Movie/Series Editor* para varias a la vez.
+
+> Si prefieres justo lo contrario (tener algo cuanto antes y mejorar después),
+> pon `ES 1080p` como perfil por defecto. Ten en cuenta que entonces muchas
+> películas se descargan dos veces (castellano → dual).
+
 ### 6. Tamaños (*Media Management → Quality Definitions*)
 
 Radarr y Sonarr miden en **MB por minuto** de duración, así el mismo valor vale
@@ -182,7 +230,7 @@ ya llega `Bluray-1080p` con 2000 puntos, se descarga al momento.
 
 *Arr Instances → radarr / sonarr → Sync*:
 
-- Quality profiles: **solo** `ES+VO 1080p` (los CF que usa van incluidos).
+- Quality profiles: `ES+VO 1080p` **y** `ES 1080p` (los CF que usan van incluidos).
 - Delay profile, Naming, Media Settings y Quality Definitions: los del paso 6–8.
 - Programación: cron diario (p.ej. `0 4 * * *`) **y** *on pull*.
 
@@ -199,17 +247,11 @@ Después, en Radarr/Sonarr:
 
 En Radarr, abre una película → *Interactive Search*: la columna de puntuación
 debe mostrar 2000 para los dual castellano, y los rechazados indicar
-*"Custom Formats … score of 1000 is below minimum 2000"*. En Profilarr puedes
+*"Custom Formats … score of 1000 is below minimum 2000"*. Con `ES 1080p`, los
+solo-castellano deben salir con 1000 y aceptados, y los solo-inglés con 500 y
+rechazados. En Profilarr puedes
 hacer lo mismo sin tocar Radarr con *Quality Profiles → Testing* (simula un
 título de TMDB con releases importados desde la instancia).
-
-### Si encuentras muy pocas cosas
-
-Los trackers públicos españoles publican mucho **solo en castellano**. Si la
-regla estricta deja demasiados títulos sin descargar, crea un segundo perfil
-`ES 1080p` idéntico pero con *Minimum CF Score* = **1000** y *Upgrade Until* =
-**2100**: descarga la versión en castellano y la **sustituye** automáticamente
-cuando aparezca la dual. Asígnalo solo a los títulos que lo necesiten.
 
 ---
 
