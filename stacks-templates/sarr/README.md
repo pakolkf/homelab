@@ -59,6 +59,12 @@ descartarían casi todo lo que viene de trackers españoles), pero **reutilizamo
 sus CF genéricos** (3D, Upscaled, Repack…). Todo lo que creemos encima va a la
 capa *user* y **sobrevive** a las actualizaciones de la base.
 
+> **No borres nada de lo que trae la base** (perfiles, CF, regex). Solo llega a
+> Radarr/Sonarr lo que marques en el *Sync* (paso 9): los perfiles elegidos y
+> los CF que esos perfiles usan. El resto se queda dentro de Profilarr sin
+> efecto. Borrarlo genera cientos de cambios locales que chocan con cada
+> actualización de la base y te quita CF que sí usamos (3D, Repack…).
+
 ### 3. Expresiones regulares (*Regular Expressions*)
 
 Crea estas cinco (son case-insensitive en Radarr/Sonarr). En la tabla `\|` es solo
@@ -240,8 +246,10 @@ Después, en Radarr/Sonarr:
   perfil por defecto al añadir (y en **Seerr**, en la config de cada servidor).
 - Cambia el perfil de lo que ya tengas en biblioteca (*Movie/Series Editor →
   selecciona todo → Quality Profile*).
-- *Settings → Profiles*: borra los perfiles por defecto (Any, HD-720p…) para que
-  nadie los elija por error.
+- Limpia los perfiles por defecto de Radarr/Sonarr (Any, HD-720p…) y CF
+  antiguos: usa *Cleanup* de la instancia en Profilarr (borra de la app lo que
+  no está en el Sync) o hazlo a mano en *Settings → Profiles*. Un perfil que aún
+  tenga películas/series asignadas no se puede borrar: cámbialas antes.
 
 ### 10. Comprobación
 
